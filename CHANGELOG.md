@@ -2,6 +2,13 @@
 
 ## v0.1.0 — 2026-07-20 (1차 릴리즈)
 
+### 저장소 구조
+- 소스를 `app/`로 이동: 파이썬 파이프라인은 `app/curation/`(패키지명 `curation` 유지),
+  웹 UI는 `app/ui/`, 의존성은 `app/requirements*.txt`. 루트에는 docker/릴리즈 파일만 남김.
+- `docs/` 문서, `tests/`(pytest 스모크 테스트) 정리. `IMAGEN_ROOT`(트리 루트)와 패키지
+  디렉토리(`app/`, PYTHONPATH)를 분리해 standalone·Docker 양쪽 경로 해석을 유지.
+
+
 LoRA 학습 데이터셋 자동 큐레이션 도구의 첫 릴리즈. 비검열 VL 모델(Qwen3-VL-8B abliterated)
 + OpenCV 품질 게이트 + 임베딩 dedup으로 데이터셋을 자동 선별하고, 웹 UI로 리뷰/적용한다.
 

@@ -11,12 +11,12 @@ models/
 # Runtime outputs (reports, thumbnails, per-run DBs, logs)
 runs/
 
-# ---- Next.js UI ----
-ui/node_modules/
-ui/.next/
-ui/out/
-ui/next-env.d.ts
-ui/.turbo/
+# ---- Next.js UI (app/ui) ----
+**/node_modules/
+**/.next/
+**/out/
+**/next-env.d.ts
+**/.turbo/
 
 # Runtime SQLite DB (created by `prisma db push`, not source)
 *.db

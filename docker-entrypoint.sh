@@ -26,9 +26,9 @@ fi
 
 DB_DIR="${CURATION_DB_DIR:-/data/db}"
 mkdir -p "$DB_DIR"
-ln -sf "$DB_DIR/curation.db" /app/curation/ui/curation.db
+ln -sf "$DB_DIR/curation.db" /app/ui/curation.db
 
-cd /app/curation/ui
+cd /app/ui
 # idempotent: creates the schema on the (possibly empty) volume
 npm run update_db
 exec npm run start

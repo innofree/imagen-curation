@@ -58,7 +58,7 @@ HF_HOME=/home/interbus/.cache/huggingface                    # 기존 HF 캐시(
 - **datasets** — `${DATASETS_DIR}` 바인드 (ai-toolkit과 공유, 정리 결과 보존)
 - **hf 캐시** — `${HF_HOME}` 바인드 (VL 모델 공유)
 - **리포트/썸네일** — `curation_runs` 볼륨
-- **작업 이력 DB** — `curation_db` 볼륨(`/data/db`). entrypoint(`docker-entrypoint.sh`)가 `ui/curation.db`를 이 볼륨으로 **심볼릭 링크**한 뒤 스키마를 생성하므로, Prisma 스키마 변경 없이 컨테이너 재생성에도 이력이 보존된다(서버 비-docker 설정은 그대로).
+- **작업 이력 DB** — `curation_db` 볼륨(`/data/db`). entrypoint(`docker-entrypoint.sh`)가 `app/ui/curation.db`를 이 볼륨으로 **심볼릭 링크**한 뒤 스키마를 생성하므로, Prisma 스키마 변경 없이 컨테이너 재생성에도 이력이 보존된다(서버 비-docker 설정은 그대로).
 
 ## 주의
 - torch 휠 태그(cu128)는 호스트/베이스 CUDA에 맞춰 조정 가능(`Dockerfile`의 index-url).
@@ -66,8 +66,9 @@ HF_HOME=/home/interbus/.cache/huggingface                    # 기존 HF 캐시(
 
 ## Standalone (Docker 없이)
 ```bash
-# paths.yaml로 경로 지정(또는 env). 이후:
-cd curation/ui && npm install && npm run build_and_start   # :8680
-# 또는 CLI:
-python -m curation.curate --src <dataset> --mode auto --recaption
+# UI: paths.yaml로 경로 지정(또는 env). 이후:
+cd curation/app/ui && npm install && npm run build_and_start   # :8680
+
+# CLI: curation 패키지가 app/ 아래이므로 PYTHONPATH를 지정해야 임포트된다.
+cd curation && PYTHONPATH=$PWD/app python -m curation.curate --src <dataset> --mode auto --recaption
 ```

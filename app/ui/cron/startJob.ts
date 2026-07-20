@@ -2,7 +2,7 @@ import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import { PrismaClient } from "@prisma/client";
-import { IMAGEN_ROOT, HF_HOME, DB_PATH, resolvePython } from "../src/lib/paths";
+import { IMAGEN_ROOT, PACKAGE_DIR, HF_HOME, DB_PATH, resolvePython } from "../src/lib/paths";
 
 const LOG_DIR = path.resolve(IMAGEN_ROOT, "logs");
 
@@ -45,7 +45,8 @@ export function startJob(job: any, mode: "analyze" | "auto" | "apply") {
     ...process.env,
     HF_HOME,
     HF_HUB_ENABLE_HF_TRANSFER: "1",
-    PYTHONPATH: IMAGEN_ROOT,
+    // `curation` package lives under app/ (PACKAGE_DIR), not the imagen-lab root.
+    PYTHONPATH: PACKAGE_DIR,
     CUDA_DEVICE_ORDER: "PCI_BUS_ID",
     CUDA_VISIBLE_DEVICES: String(job.gpu_ids ?? "0"),
     // curate.py uses --device cuda:0 which maps to the visible device above.
@@ -61,7 +62,7 @@ export function startJob(job: any, mode: "analyze" | "auto" | "apply") {
     detached: true,
     stdio: ["ignore", out, out],
     env,
-    cwd: IMAGEN_ROOT,
+    cwd: PACKAGE_DIR,
   });
   const pid = child.pid;
   child.unref();

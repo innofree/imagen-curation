@@ -1,8 +1,8 @@
 .git
 **/node_modules
 **/.next
-runs/
-models/
+**/runs/
+**/models/
 *.db
 *.db-shm
 *.db-wal

@@ -11,7 +11,8 @@ Modes:
 Examples:
   python -m curation.curate --src datasets/newface_v1 --mode analyze --dry-run
   python -m curation.curate --src datasets/newface_v1 --mode auto --recaption
-  python -m curation.curate --job-id <uuid> --db curation/ui/curation.db --mode apply
+  python -m curation.curate --job-id <uuid> --db app/ui/curation.db --mode apply
+  (run from the project root, or with PYTHONPATH=<project>/app so `curation` imports)
 """
 from __future__ import annotations
 

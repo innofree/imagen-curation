@@ -9,7 +9,7 @@
 ```bash
 CURATE_PORT="8680"
 
-curate_run_foreground() { activate_env ai-toolkit; cd "$IMAGEN_ROOT/curation/ui"; exec npm run start; }
+curate_run_foreground() { activate_env ai-toolkit; cd "$IMAGEN_ROOT/curation/app/ui"; exec npm run start; }
 curate_stop() {
   pkill -TERM -f "concurrently.*next start -p $CURATE_PORT" 2>/dev/null || true; sleep 1
   pkill -KILL -f "concurrently.*next start -p $CURATE_PORT" 2>/dev/null || true
@@ -17,7 +17,7 @@ curate_stop() {
   svc_stop curate-ui "$CURATE_PORT"
 }
 curate_build() {
-  activate_env ai-toolkit; cd "$IMAGEN_ROOT/curation/ui"
+  activate_env ai-toolkit; cd "$IMAGEN_ROOT/curation/app/ui"
   npm install
   for p in @prisma/client @prisma/engines prisma esbuild; do npm approve-scripts "$p" || true; done
   npm rebuild @prisma/engines esbuild || true
@@ -39,15 +39,17 @@ for pid in $(pgrep -f 'curation[./]curate' 2>/dev/null); do
 done
 ```
 
-워커(`ui/cron/startJob.ts`)가 서브프로세스에 `IS_CURATION_JOB=1` + `CUDA_VISIBLE_DEVICES`를 주입한다.
+워커(`app/ui/cron/startJob.ts`)가 서브프로세스에 `IS_CURATION_JOB=1` + `CUDA_VISIBLE_DEVICES`를 주입한다.
 
 ## Standalone (imagen-lab.sh 없이)
 
 ```bash
-cd curation/ui
+# UI:
+cd curation/app/ui
 npm install && npm run update_db && npm run build && npm run start   # http://<host>:8680
-# 또는 CLI:
-python -m curation.curate --src <dataset> --mode auto --recaption
+
+# CLI: curation 패키지가 app/ 아래이므로 PYTHONPATH 지정 필요.
+cd curation && PYTHONPATH=$PWD/app python -m curation.curate --src <dataset> --mode auto --recaption
 ```
 
 경로/파이썬은 환경변수로 조정: `IMAGEN_ROOT`, `CURATION_PYTHON`(파이썬 인터프리터).

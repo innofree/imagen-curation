@@ -8,8 +8,13 @@ tree.
 Precedence (highest first):
   1. environment variables (IMAGEN_ROOT, DATASETS_DIR, HF_HOME, CURATION_PYTHON,
      COMFYUI_MODELS, IMAGEN_LAB_SCRIPT)
-  2. curation/paths.yaml  (copy from paths.yaml.example)
-  3. derived defaults from the imagen-lab tree (curation/..)
+  2. paths.yaml at the project root  (copy from paths.yaml.example)
+  3. derived defaults from the imagen-lab tree
+
+Layout note: this package lives at <project_root>/app/curation/, so the imagen-lab
+tree root defaults to three levels up. IMAGEN_ROOT is that tree root (used to
+derive datasets/HF/python defaults) and is distinct from the package dir (app/,
+which is what must be on PYTHONPATH — the UI worker sets that separately).
 """
 from __future__ import annotations
 
@@ -21,15 +26,17 @@ try:
 except Exception:  # noqa: BLE001
     yaml = None  # type: ignore
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_DEFAULT_ROOT = os.path.dirname(_HERE)  # curation/.. -> imagen-lab root by default
+_HERE = os.path.dirname(os.path.abspath(__file__))          # <root>/app/curation
+PACKAGE_DIR = os.path.dirname(_HERE)                          # <root>/app  (PYTHONPATH)
+PROJECT_ROOT = os.path.dirname(PACKAGE_DIR)                   # <root>      (Dockerfile, docs)
+_DEFAULT_ROOT = os.path.dirname(PROJECT_ROOT)                 # imagen-lab tree root
 
 
 def _load_yaml() -> Dict[str, Any]:
     if yaml is None:
         return {}
     for name in ("paths.yaml", "paths.yml"):
-        p = os.path.join(_HERE, name)
+        p = os.path.join(PROJECT_ROOT, name)
         if os.path.exists(p):
             try:
                 with open(p) as f:

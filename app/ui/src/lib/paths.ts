@@ -2,16 +2,19 @@ import path from "path";
 import fs from "fs";
 import YAML from "yaml";
 
-// The UI runs with cwd = curation/ui. The curation dir (holding paths.yaml) is
-// one level up; the imagen-lab root defaults to two levels up.
+// The UI runs with cwd = <project>/app/ui.  Layout:
+//   PACKAGE_DIR  = app/         -> holds the `curation` python package (PYTHONPATH)
+//   PROJECT_ROOT = <project>/   -> Dockerfile, docs, paths.yaml
+//   IMAGEN_ROOT  = <project>/.. -> imagen-lab tree root (datasets/HF/python defaults)
 export const UI_DIR = process.cwd();
-const CURATION_ROOT = path.resolve(UI_DIR, "..");
+export const PACKAGE_DIR = path.resolve(UI_DIR, "..");
+const PROJECT_ROOT = path.resolve(UI_DIR, "..", "..");
 
 // Shared config, analogous to ComfyUI's extra_model_paths.yaml. Optional:
-// env var > paths.yaml > derived default. See curation/paths.yaml.example.
+// env var > paths.yaml > derived default. See paths.yaml.example at the root.
 function loadYaml(): Record<string, string> {
   for (const name of ["paths.yaml", "paths.yml"]) {
-    const p = path.join(CURATION_ROOT, name);
+    const p = path.join(PROJECT_ROOT, name);
     if (fs.existsSync(p)) {
       try {
         return (YAML.parse(fs.readFileSync(p, "utf8")) as Record<string, string>) || {};
@@ -26,7 +29,7 @@ const y = loadYaml();
 const pick = (env: string, key: string, def: string) =>
   process.env[env] || y[key] || def;
 
-export const IMAGEN_ROOT = pick("IMAGEN_ROOT", "imagen_root", path.resolve(UI_DIR, "..", ".."));
+export const IMAGEN_ROOT = pick("IMAGEN_ROOT", "imagen_root", path.resolve(PROJECT_ROOT, ".."));
 export const DATASETS_DIR = pick("DATASETS_DIR", "datasets_dir", path.join(IMAGEN_ROOT, "datasets"));
 export const HF_HOME = pick("HF_HOME", "hf_home", path.join(IMAGEN_ROOT, "downloads", "hf"));
 export const DB_PATH = path.resolve(UI_DIR, "curation.db");
