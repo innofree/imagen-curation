@@ -25,10 +25,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ jo
   const body = await req.json();
   const { id, decision } = body;
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
-  await prisma.imageResult.update({
-    where: { id },
+  // Scope the update to this job so a stale/crafted request cannot change
+  // another job's review decision (updateMany allows the composite filter).
+  const res = await prisma.imageResult.updateMany({
+    where: { id, job_ref: jobID },
     data: { user_decision: decision === "keep" || decision === "reject" ? decision : null },
   });
+  if (res.count === 0) return NextResponse.json({ error: "not found for job" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
 

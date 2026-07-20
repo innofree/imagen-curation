@@ -41,8 +41,10 @@ def log(msg: str):
     print(msg, flush=True)
 
 
-def image_id(path: str) -> str:
-    return hashlib.md5(os.path.abspath(path).encode()).hexdigest()[:16]
+def image_id(job_id: str, path: str) -> str:
+    # Scope the id to the job so re-analyzing the same dataset in a new job does
+    # not collide with (and overwrite) an earlier job's ImageResult rows.
+    return hashlib.md5(f"{job_id}:{os.path.abspath(path)}".encode()).hexdigest()[:16]
 
 
 def list_images(src: str) -> List[str]:
@@ -83,48 +85,52 @@ def run_analyze(src: str, cfg: CurationConfig, db: CurationDB, job_id: str,
             log("[analyze] stop requested")
             db.update_job(job_id, status="stopped", info="stopped by user")
             return {}
-        iid = image_id(path)
-        # downscaled PIL for VL + thumb + embedding
-        pil = Image.open(path)
-        orig_size = pil.size  # (w, h) from header, cheap
-        pil = ImageOps.exif_transpose(pil).convert("RGB")
-
-        # quality on a 1280px copy (stable thresholds) but true-res gate
-        bgr = read_bgr(path, max_res=1280)
-        if bgr is None:
-            continue
-        q = qa.analyze(bgr, orig_size=orig_size)
-        vl_img = pil
-        if max(pil.size) > cfg.max_res:
-            sc = cfg.max_res / max(pil.size)
-            vl_img = pil.resize((int(pil.width * sc), int(pil.height * sc)), Image.BICUBIC)
-
-        vl = evaluator.evaluate(vl_img) if evaluator else {}
-
-        # thumbnail file for the UI
-        thumb_rel = os.path.join("thumbs", f"{iid}.jpg")
+        # A single unreadable/corrupt image must not abort the whole job.
         try:
-            th = pil.copy()
-            th.thumbnail((cfg.thumb_size, cfg.thumb_size))
-            th.save(os.path.join(out_dir, thumb_rel), "JPEG", quality=82)
-        except Exception:  # noqa: BLE001
-            thumb_rel = ""
+            iid = image_id(job_id, path)
+            # downscaled PIL for VL + thumb + embedding
+            pil = Image.open(path)
+            orig_size = pil.size  # (w, h) from header, cheap
+            pil = ImageOps.exif_transpose(pil).convert("RGB")
 
-        rec = {
-            "id": iid, "job_ref": job_id, "path": path,
-            "filename": os.path.basename(path),
-            "thumb_path": os.path.join(out_dir, thumb_rel) if thumb_rel else "",
-            "width": q.width, "height": q.height,
-            "quality_score": q.quality_score, "quality_verdict": q.verdict,
-            "quality_reasons": q.reasons, "global_sharpness": q.global_sharpness,
-            "face_sharpness": q.face_sharpness, "face_detected": int(q.face_detected),
-            "face_area_frac": q.face_area_frac, "vl": vl, "bucket": "",
-            "uniqueness": 0.0, "cluster_id": -1, "is_duplicate": 0,
-            "auto_decision": "keep", "auto_reason": "",
-        }
-        records.append(rec)
-        dedup_items.append({"path": path, "image": vl_img})
-        qscores.append(q.quality_score)
+            # quality on a 1280px copy (stable thresholds) but true-res gate
+            bgr = read_bgr(path, max_res=1280)
+            if bgr is None:
+                raise ValueError("unreadable image")
+            q = qa.analyze(bgr, orig_size=orig_size)
+            vl_img = pil
+            if max(pil.size) > cfg.max_res:
+                sc = cfg.max_res / max(pil.size)
+                vl_img = pil.resize((int(pil.width * sc), int(pil.height * sc)), Image.BICUBIC)
+
+            vl = evaluator.evaluate(vl_img) if evaluator else {}
+
+            # thumbnail file for the UI
+            thumb_rel = os.path.join("thumbs", f"{iid}.jpg")
+            try:
+                th = pil.copy()
+                th.thumbnail((cfg.thumb_size, cfg.thumb_size))
+                th.save(os.path.join(out_dir, thumb_rel), "JPEG", quality=82)
+            except Exception:  # noqa: BLE001
+                thumb_rel = ""
+
+            rec = {
+                "id": iid, "job_ref": job_id, "path": path,
+                "filename": os.path.basename(path),
+                "thumb_path": os.path.join(out_dir, thumb_rel) if thumb_rel else "",
+                "width": q.width, "height": q.height,
+                "quality_score": q.quality_score, "quality_verdict": q.verdict,
+                "quality_reasons": q.reasons, "global_sharpness": q.global_sharpness,
+                "face_sharpness": q.face_sharpness, "face_detected": int(q.face_detected),
+                "face_area_frac": q.face_area_frac, "vl": vl, "bucket": "",
+                "uniqueness": 0.0, "cluster_id": -1, "is_duplicate": 0,
+                "auto_decision": "keep", "auto_reason": "",
+            }
+            records.append(rec)
+            dedup_items.append({"path": path, "image": vl_img})
+            qscores.append(q.quality_score)
+        except Exception as e:  # noqa: BLE001
+            log(f"[analyze] skipping {os.path.basename(path)}: {e}")
         db.set_progress(job_id, i + 1, len(files), f"analyzed {i+1}/{len(files)}")
         if (i + 1) % 20 == 0:
             log(f"[analyze] {i+1}/{len(files)}")
@@ -229,7 +235,11 @@ def run_apply(src: str, cfg: CurationConfig, db: CurationDB, job_id: str,
                           info="recaptioning kept images")
             for i, r in enumerate(keep):
                 if db.should_stop(job_id):
-                    break
+                    db.update_job(job_id, status="stopped",
+                                  info=f"stopped during recaption ({recap}/{len(keep)} done; "
+                                       f"{'deleted' if do_delete else 'moved'} {moved})")
+                    log("[apply] stop requested during recaption")
+                    return {"moved": moved, "recap": recap, "keep": len(keep)}
                 try:
                     pil = ImageOps.exif_transpose(Image.open(r["path"])).convert("RGB")
                     if max(pil.size) > cfg.max_res:
