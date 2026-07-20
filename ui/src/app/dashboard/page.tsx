@@ -4,17 +4,46 @@ import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import StatusBadge from "@/components/StatusBadge";
 import GpuStatus from "@/components/GpuStatus";
+import { Folder, Cpu, Layers, Type, Trash2, FlaskConical } from "lucide-react";
+
+const ACTIVE = ["running", "analyzing", "applying", "queued", "apply_queued"];
+
+function parseParams(p: string) {
+  try { return JSON.parse(p || "{}"); } catch { return {}; }
+}
+function vramMode(params: any) {
+  if (params.quantize === true) return "fp8";
+  if (params.quantize === false) return "bf16";
+  return "auto";
+}
+
+function Chip({ icon: Icon, children, title }: any) {
+  return (
+    <span className="badge inline-flex items-center gap-1" title={title}>
+      {Icon && <Icon size={11} />}{children}
+    </span>
+  );
+}
 
 export default function Dashboard() {
   const [jobs, setJobs] = useState<any[]>([]);
+  const [gpus, setGpus] = useState<Record<number, any>>({});
+
   useEffect(() => {
-    const load = () => fetch("/api/jobs").then((r) => r.json()).then((d) => setJobs(d.jobs || []));
+    const load = () => {
+      fetch("/api/jobs").then((r) => r.json()).then((d) => setJobs(d.jobs || []));
+      fetch("/api/gpu").then((r) => r.json()).then((d) => {
+        const m: Record<number, any> = {};
+        (d.gpus || []).forEach((g: any) => (m[g.index] = g));
+        setGpus(m);
+      });
+    };
     load();
     const t = setInterval(load, 2500);
     return () => clearInterval(t);
   }, []);
 
-  const active = jobs.filter((j) => ["running", "analyzing", "applying", "queued", "apply_queued"].includes(j.status));
+  const active = jobs.filter((j) => ACTIVE.includes(j.status));
 
   return (
     <>
@@ -26,26 +55,54 @@ export default function Dashboard() {
           <h2 className="text-xs uppercase text-neutral-500 mb-2">GPU 상태</h2>
           <GpuStatus />
         </section>
+
         <section>
           <h2 className="text-xs uppercase text-neutral-500 mb-2">진행 중</h2>
           {active.length === 0 && <div className="text-sm text-neutral-500">활성 작업 없음</div>}
           <div className="grid gap-3 md:grid-cols-2">
-            {active.map((j) => (
-              <Link key={j.id} href={`/jobs/${j.id}`} className="card p-4 block hover:border-blue-600">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium text-sm">{j.name}</span>
-                  <StatusBadge status={j.status} />
-                </div>
-                <div className="text-xs text-neutral-500 mt-1">{j.info}</div>
-                {j.total_steps > 0 && (
-                  <div className="mt-2 h-1.5 bg-panel2 rounded overflow-hidden">
-                    <div className="h-full bg-blue-500" style={{ width: `${(100 * j.step) / j.total_steps}%` }} />
+            {active.map((j) => {
+              const p = parseParams(j.params);
+              const gi = Number(String(j.gpu_ids).split(",")[0]);
+              const g = gpus[gi];
+              const cap = p.coverage?.per_bucket_cap;
+              return (
+                <Link key={j.id} href={`/jobs/${j.id}`} className="card p-4 block hover:border-blue-600">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-sm truncate">{j.name}</span>
+                    <StatusBadge status={j.status} />
                   </div>
-                )}
-              </Link>
-            ))}
+                  {/* 조건 */}
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <Chip icon={Folder} title="소스 데이터셋">{j.source_folder.split("/").pop()}</Chip>
+                    <Chip icon={FlaskConical} title="모드">{j.mode}</Chip>
+                    {cap ? <Chip icon={Layers} title="버킷당 최대 장수">버킷당 {cap}</Chip> : null}
+                    {j.target ? <Chip icon={Layers} title="목표 유지 수">목표 {j.target}</Chip> : null}
+                    {j.recaption ? <Chip icon={Type} title="캡션 재생성">recaption</Chip> : null}
+                    {j.do_delete ? <Chip icon={Trash2} title="리젝트 하드 삭제">delete</Chip> : null}
+                    {j.dry_run ? <Chip title="파일 변경 없음">dry-run</Chip> : null}
+                  </div>
+                  {/* 리소스 */}
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <Chip icon={Cpu} title="사용 GPU">
+                      GPU #{gi}
+                      {g ? ` · ${g.util}% · ${(g.memUsed / 1024).toFixed(1)}/${(g.memTotal / 1024).toFixed(0)}GB` : ""}
+                    </Chip>
+                    <Chip title="VRAM 모드">VRAM {vramMode(p)}</Chip>
+                    {p.auto_free_gpu !== false ? <Chip title="유휴 GPU 자동 확보">idle-reclaim</Chip> : null}
+                  </div>
+                  <div className="text-xs text-neutral-500 mt-2">{j.info}</div>
+                  {j.total_steps > 0 && (
+                    <div className="mt-2 h-1.5 bg-panel2 rounded overflow-hidden">
+                      <div className="h-full bg-blue-500 transition-all" style={{ width: `${(100 * j.step) / j.total_steps}%` }} />
+                    </div>
+                  )}
+                  {j.total_steps > 0 && <div className="text-[11px] text-neutral-500 mt-1">{j.step}/{j.total_steps}</div>}
+                </Link>
+              );
+            })}
           </div>
         </section>
+
         <section>
           <h2 className="text-xs uppercase text-neutral-500 mb-2">최근 작업</h2>
           <div className="card divide-y divide-edge">
