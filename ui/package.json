@@ -1,0 +1,38 @@
+{
+  "name": "curation-ui",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n WORKER,UI -c yellow,cyan \"tsx watch cron/worker.ts\" \"next dev -p 8680\"",
+    "build": "prisma generate && next build",
+    "update_db": "prisma generate && prisma db push",
+    "start": "concurrently -k -r --restart-tries -1 -n WORKER,UI -c yellow,cyan \"tsx cron/worker.ts\" \"next start -p 8680\"",
+    "build_and_start": "npm install && npm run update_db && npm run build && npm run start"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.3.1",
+    "axios": "^1.7.9",
+    "lucide-react": "^0.469.0",
+    "next": "^15.5.9",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "postcss": "^8.4.49",
+    "prisma": "^6.3.1",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "prisma@6.19.3": true,
+    "esbuild@0.28.1": true
+  }
+}

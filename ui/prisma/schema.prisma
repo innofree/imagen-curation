@@ -1,0 +1,72 @@
+// Curation UI database. Column names/types are kept identical to the Python
+// pipeline's CREATE TABLE (curation/db.py): snake_case fields, timestamps as
+// String, booleans as Int (0/1). Prisma owns creation via `prisma db push`;
+// the Python side uses CREATE TABLE IF NOT EXISTS so the two never diverge.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../curation.db"
+}
+
+model Job {
+  id            String   @id
+  name          String?  @unique
+  source_folder String
+  gpu_ids       String   @default("0")
+  params        String   @default("{}")
+  mode          String   @default("auto")
+  status        String   @default("queued")
+  step          Int      @default(0)
+  total_steps   Int      @default(0)
+  info          String   @default("")
+  verdict       String?
+  report_dir    String?
+  dry_run       Int      @default(0)
+  recaption     Int      @default(0)
+  do_delete     Int      @default(0)
+  target        Int?
+  stop          Int      @default(0)
+  pid           Int?
+  created_at    String   @default("")
+  updated_at    String   @default("")
+
+  @@index([status])
+}
+
+model ImageResult {
+  id               String  @id
+  job_ref          String
+  path             String
+  filename         String
+  thumb_path       String?
+  width            Int     @default(0)
+  height           Int     @default(0)
+  quality_score    Float   @default(0)
+  quality_verdict  String  @default("pass")
+  quality_reasons  String  @default("[]")
+  global_sharpness Float   @default(0)
+  face_sharpness   Float   @default(0)
+  face_detected    Int     @default(0)
+  face_area_frac   Float   @default(0)
+  vl               String  @default("{}")
+  bucket           String  @default("")
+  uniqueness       Float   @default(0)
+  cluster_id       Int     @default(-1)
+  is_duplicate     Int     @default(0)
+  auto_decision    String  @default("keep")
+  auto_reason      String  @default("")
+  user_decision    String?
+  applied          Int     @default(0)
+
+  @@index([job_ref])
+}
+
+model Settings {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+}

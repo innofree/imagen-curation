@@ -1,0 +1,31 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Auto-downloaded models (YuNet etc. are fetched at runtime)
+models/
+
+# Runtime outputs (reports, thumbnails, per-run DBs, logs)
+runs/
+
+# ---- Next.js UI ----
+ui/node_modules/
+ui/.next/
+ui/out/
+ui/next-env.d.ts
+ui/.turbo/
+
+# Runtime SQLite DB (created by `prisma db push`, not source)
+*.db
+*.db-shm
+*.db-wal
+
+# ---- misc ----
+*.log
+.env
+.env.*
+.DS_Store
+Thumbs.db

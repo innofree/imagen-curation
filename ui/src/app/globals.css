@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  /* --ui-font is set at runtime by FontApplier from the saved setting;
+     defaults to the bundled Pretendard variable font. */
+  --font-system: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Malgun Gothic", "Segoe UI", system-ui, sans-serif;
+}
+html, body {
+  background: #101012;
+  color: #e6e6e8;
+  font-family: var(--ui-font, var(--font-noto)), "Apple SD Gothic Neo",
+    "Malgun Gothic", system-ui, sans-serif;
+}
+a { color: inherit; }
+
+.btn {
+  @apply inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium
+         bg-panel2 border border-edge hover:bg-[#2c2c31] transition-colors;
+}
+.btn-primary { @apply bg-blue-600 border-blue-500 hover:bg-blue-500 text-white; }
+.btn-danger { @apply bg-red-700 border-red-600 hover:bg-red-600 text-white; }
+.card { @apply bg-panel border border-edge rounded-lg; }
+.input {
+  @apply bg-panel2 border border-edge rounded-md px-2.5 py-1.5 text-sm w-full
+         focus:outline-none focus:border-blue-500;
+}
+.badge { @apply inline-block text-[11px] rounded px-1.5 py-0.5 bg-panel2 border border-edge; }

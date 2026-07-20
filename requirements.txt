@@ -1,0 +1,15 @@
+# Python dependencies for the curation pipeline (curate.py and modules).
+#
+# NOTE: install a CUDA-matched PyTorch build FIRST, e.g. (adjust cuXXX):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# then:
+#   pip install -r requirements.txt
+#
+# On the imagen-lab server this all already lives in the `ai-toolkit` conda env,
+# so no separate install is needed there.
+
+transformers>=5.5
+optimum-quanto
+opencv-python
+Pillow
+numpy<2
