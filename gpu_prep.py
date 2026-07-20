@@ -20,9 +20,11 @@ import subprocess
 import time
 from typing import Optional
 
-IMAGEN_ROOT = "/data/workspace/imagen-lab"
-SCRIPT = os.path.join(IMAGEN_ROOT, "scripts", "imagen-lab.sh")
-RUN_DIR = os.path.join(IMAGEN_ROOT, "run")
+from curation.paths import PATHS
+
+IMAGEN_ROOT = PATHS["imagen_root"]
+SCRIPT = PATHS["script"]
+RUN_DIR = PATHS["run_dir"]
 COMFY_BASE_PORT = 8188  # GPU0; GPU n => base + 100*n
 
 

@@ -1,0 +1,36 @@
+# Curation web UI + pipeline. Requires NVIDIA Container Toolkit for GPU.
+#
+# Set host paths via env (shared with ComfyUI/ai-toolkit) then `docker compose up`:
+#   DATASETS_DIR=/data/workspace/imagen-lab/datasets \
+#   HF_HOME=/data/workspace/imagen-lab/downloads/hf \
+#   docker compose up --build
+services:
+  curation:
+    build: .
+    image: imagen-curation:latest
+    ports:
+      - "8680:8680"
+    environment:
+      IMAGEN_ROOT: /app
+      CURATION_PYTHON: /usr/bin/python3
+      HF_HOME: /data/hf
+      DATASETS_DIR: /data/datasets
+    volumes:
+      # datasets — SAME folder ai-toolkit trains from (read/write; curation moves rejects here)
+      - ${DATASETS_DIR:-./datasets}:/data/datasets
+      # VL-model / HF cache — SHARED with ComfyUI/ai-toolkit so the model is not re-downloaded
+      - ${HF_HOME:-./hf}:/data/hf
+      # reports/thumbnails so the gallery survives restarts
+      - curation_runs:/app/curation/runs
+    # GPU access (NVIDIA Container Toolkit)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  curation_runs:

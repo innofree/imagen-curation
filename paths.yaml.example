@@ -1,0 +1,30 @@
+# Shared paths for curation (standalone / Docker).
+#
+# Copy to `paths.yaml` and adjust. Environment variables override these keys.
+# Analogous to ComfyUI's extra_model_paths.yaml: declare external locations
+# once so the VL-model cache is shared with ComfyUI/ai-toolkit and the datasets
+# directory is shared with ai-toolkit — no re-downloads, no path hardcoding.
+#
+# If this file is absent, values are derived from the imagen-lab tree
+# (curation/..), which matches the current on-server layout.
+
+# Base dir used to derive any value left unset below.
+imagen_root: /data/workspace/imagen-lab
+
+# Training datasets — SAME folder ai-toolkit reads (folder_path in its configs).
+datasets_dir: /data/workspace/imagen-lab/datasets
+
+# HF cache holding the VL model — SHARED with ComfyUI/ai-toolkit (HF_HOME).
+hf_home: /data/workspace/imagen-lab/downloads/hf
+
+# Python interpreter the UI worker uses to spawn the pipeline
+# (the ai-toolkit conda env on the server; /usr/bin/python3 inside Docker).
+python: /data/workspace/imagen-lab/miniconda3/envs/ai-toolkit/bin/python
+
+# Optional: ComfyUI shared diffusion-model tree (not required by curation today,
+# reserved for future model sharing).
+comfyui_models: /data/workspace/imagen-lab/models
+
+# Optional: imagen-lab service manager for idle-GPU reclaim (absent in Docker).
+imagen_lab_script: /data/workspace/imagen-lab/scripts/imagen-lab.sh
+run_dir: /data/workspace/imagen-lab/run

@@ -23,6 +23,10 @@ ui/.turbo/
 *.db-shm
 *.db-wal
 
+# Local path overrides (commit paths.yaml.example instead)
+paths.yaml
+paths.yml
+
 # ---- misc ----
 *.log
 .env

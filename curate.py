@@ -32,8 +32,8 @@ from curation import coverage as coverage_mod  # noqa: E402
 from curation import embed_dedup, report  # noqa: E402
 from curation.db import CurationDB  # noqa: E402
 from curation.quality import QualityAnalyzer, read_bgr  # noqa: E402
+from curation.paths import ensure_hf_home_env  # noqa: E402
 
-REPO_ROOT = "/data/workspace/imagen-lab"
 RUNS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "runs")
 
 
@@ -315,6 +315,7 @@ def main():
                     help="do NOT stop an idle ComfyUI holding the target GPU's VRAM")
     args = ap.parse_args()
 
+    ensure_hf_home_env()  # resolve VL model from the shared HF cache if HF_HOME unset
     job_id = args.job_id or uuid.uuid4().hex[:16]
     out_dir = args.out or os.path.join(RUNS_DIR, job_id)
     os.makedirs(out_dir, exist_ok=True)

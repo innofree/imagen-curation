@@ -59,6 +59,16 @@ $S curate-ui status | $S curate-ui stop
 - **리뷰 모드**: 갤러리에서 버킷별 자동 keep/reject·점수·사유 확인 후 클릭으로 오버라이드 → "적용".
 - **자동 모드**: 분석 후 즉시 적용.
 
+## Docker / 경로 공유 (standalone 배포)
+`paths.yaml`(예시: `paths.yaml.example`)로 datasets/HF캐시/python 경로를 선언하면 하드코딩 없이
+ComfyUI/ai-toolkit와 **모델·데이터셋을 공유**한다(env가 최우선). GPU Docker 실행:
+```bash
+DATASETS_DIR=/data/workspace/imagen-lab/datasets \
+HF_HOME=/data/workspace/imagen-lab/downloads/hf \
+docker compose up --build      # → :8680
+```
+자세한 내용: `docs/docker.md`.
+
 ## 튜닝
 임계값은 `config.py`에 집중되어 있다 (품질 임계값, dedup 유사도 0.90, 버킷 최소치, 최소 적합도 등).
 UI 작업은 `params` JSON으로 per-job 오버라이드 가능.
