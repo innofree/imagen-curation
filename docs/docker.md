@@ -28,8 +28,13 @@ docker compose up --build
 
 이미지 구성: CUDA 12.8 runtime + torch(cu128) + transformers/opencv + Node 22로 UI 빌드. VL 모델은 이미지에 굽지 않고 마운트된 HF 캐시로 처리.
 
-## 주의 / 한계
-- **작업 이력 DB**(`ui/curation.db`)는 이미지 내부라 컨테이너 재생성 시 초기화된다. 실제 산출물(정리된 datasets)과 리포트(`curation_runs` 볼륨)는 보존된다. 이력까지 영구화하려면 Prisma `url = env("DATABASE_URL")`로 바꾸고 `/data`에 두면 된다(후속 작업).
+## 영속성 (볼륨)
+- **datasets** — `${DATASETS_DIR}` 바인드 (ai-toolkit과 공유, 정리 결과 보존)
+- **hf 캐시** — `${HF_HOME}` 바인드 (VL 모델 공유)
+- **리포트/썸네일** — `curation_runs` 볼륨
+- **작업 이력 DB** — `curation_db` 볼륨(`/data/db`). entrypoint(`docker-entrypoint.sh`)가 `ui/curation.db`를 이 볼륨으로 **심볼릭 링크**한 뒤 스키마를 생성하므로, Prisma 스키마 변경 없이 컨테이너 재생성에도 이력이 보존된다(서버 비-docker 설정은 그대로).
+
+## 주의
 - torch 휠 태그(cu128)는 호스트/베이스 CUDA에 맞춰 조정 가능(`Dockerfile`의 index-url).
 - 단일 컨테이너에 워커+UI+파이썬이 함께 뜬다(워커가 `python3 -m curation.curate`를 spawn).
 

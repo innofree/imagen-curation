@@ -30,7 +30,8 @@ COPY . /app/curation
 WORKDIR /app/curation/ui
 RUN npm install --no-audit --no-fund \
     && npm run update_db \
-    && npm run build
+    && npm run build \
+    && chmod +x /app/curation/docker-entrypoint.sh
 
 # Runtime config: paths resolve inside the container; data comes from volumes.
 ENV IMAGEN_ROOT=/app \
@@ -41,5 +42,6 @@ ENV IMAGEN_ROOT=/app \
     HF_HUB_ENABLE_HF_TRANSFER=1
 
 EXPOSE 8680
-# Starts the cron worker + Next server (worker spawns `python3 -m curation.curate`).
-CMD ["npm", "run", "start"]
+# Entrypoint symlinks the job DB onto the /data/db volume (persisted across
+# container recreation), then starts the worker + Next server.
+CMD ["/app/curation/docker-entrypoint.sh"]

@@ -22,6 +22,8 @@ services:
       - ${HF_HOME:-./hf}:/data/hf
       # reports/thumbnails so the gallery survives restarts
       - curation_runs:/app/curation/runs
+      # job history DB (symlinked here by the entrypoint) — persists across recreation
+      - curation_db:/data/db
     # GPU access (NVIDIA Container Toolkit)
     deploy:
       resources:
@@ -34,3 +36,4 @@ services:
 
 volumes:
   curation_runs:
+  curation_db:
