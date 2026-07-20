@@ -1,20 +1,33 @@
 # Curation web UI + pipeline. Requires NVIDIA Container Toolkit for GPU.
 #
 # Set host paths via env (shared with ComfyUI/ai-toolkit) then `docker compose up`:
-#   DATASETS_DIR=/data/workspace/imagen-lab/datasets \
-#   HF_HOME=/data/workspace/imagen-lab/downloads/hf \
+#   DATASETS_DIR=/home/interbus/workspace/ai-toolkit/datasets \
+#   HF_HOME=/home/interbus/.cache/huggingface \
 #   docker compose up --build
+# or just `cp .env.example .env` (compose auto-loads it) and `docker compose up --build`.
 services:
   curation:
-    build: .
+    build:
+      context: .
+      args:
+        # Override for a different GPU generation without editing the Dockerfile:
+        #   docker compose build --build-arg TORCH_INDEX_URL=...  (or set TORCH_INDEX_URL in .env)
+        TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu128}
     image: imagen-curation:latest
     ports:
-      - "8680:8680"
+      # Host port is overridable (CURATION_PORT) so it can coexist with a
+      # standalone/native UI or another service already on 8680.
+      - "${CURATION_PORT:-8680}:8680"
     environment:
       IMAGEN_ROOT: /app
       CURATION_PYTHON: /usr/bin/python3
       HF_HOME: /data/hf
       DATASETS_DIR: /data/datasets
+    # Files curation writes into the datasets bind (rejects/, recaptions) are
+    # owned by the container user. On a shared host where ai-toolkit runs as a
+    # normal user, uncomment to write as that user so it can still manage them
+    # (the /data/db + runs volumes must then be writable by this uid/gid too):
+    #   user: "1000:1000"
     volumes:
       # datasets — SAME folder ai-toolkit trains from (read/write; curation moves rejects here)
       - ${DATASETS_DIR:-./datasets}:/data/datasets
@@ -24,7 +37,8 @@ services:
       - curation_runs:/app/curation/runs
       # job history DB (symlinked here by the entrypoint) — persists across recreation
       - curation_db:/data/db
-    # GPU access (NVIDIA Container Toolkit)
+    # GPU access (NVIDIA Container Toolkit). All GPUs are visible; the UI picks the
+    # freest one per job and scopes the work with CUDA_VISIBLE_DEVICES.
     deploy:
       resources:
         reservations:
@@ -32,6 +46,14 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    # Readiness: `docker compose up`/orchestrators can wait on this instead of
+    # guessing when the Next server is serving.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8680/api/gpu"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
     restart: unless-stopped
 
 volumes:

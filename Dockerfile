@@ -18,9 +18,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app/curation
 
 # Python deps: CUDA-matched torch first, then the pipeline requirements.
+# TORCH_INDEX_URL is a build arg so a host with a different GPU generation can
+# swap the wheel channel without editing this file, e.g.:
+#   docker compose build --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/nightly/cu128
+# (Blackwell / sm_120 such as RTX PRO 6000 may need a newer or nightly cu128.)
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
 COPY requirements.txt ./
 RUN python3 -m pip install --upgrade pip \
-    && python3 -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128 \
+    && python3 -m pip install torch torchvision --index-url ${TORCH_INDEX_URL} \
     && python3 -m pip install -r requirements.txt
 
 # Project source (respects .dockerignore).

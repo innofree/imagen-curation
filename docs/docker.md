@@ -36,8 +36,23 @@ HF_HOME=/home/interbus/.cache/huggingface                    # 기존 HF 캐시(
 
 이미지 구성: CUDA 12.8 runtime + torch(cu128) + transformers/opencv + Node 22로 UI 빌드. VL 모델은 이미지에 굽지 않고 마운트된 HF 캐시로 처리.
 
-> **Blackwell(예: RTX PRO 6000, sm_120) 주의**: cu128 torch가 sm_120을 지원해야 한다. 커널 미지원 에러 시
-> `Dockerfile`의 torch index-url을 최신 cu128(또는 nightly)로 조정.
+> **Blackwell(예: RTX PRO 6000, sm_120)**: **stable cu128의 torch 2.11이 이미 sm_120 커널을 포함**하므로
+> 그대로 빌드하면 된다(comfy-models의 RTX PRO 6000 Blackwell에서 `arch_list`에 `sm_120` 확인 +
+> 컨테이너 내 실제 matmul 실행 검증 완료). **nightly는 오히려 torch/torchvision 짝이 안 맞아
+> `ResolutionImpossible`로 빌드가 깨지므로 쓰지 말 것.** 향후 더 새 아키텍처로 stable에 커널이 없어
+> `no kernel image available` 에러가 나는 경우에만 `TORCH_INDEX_URL`을 조정한다.
+
+## 운영 노브 (공유 서버용)
+- **기동 확인**: 컨테이너에 `healthcheck`(`GET /api/gpu`, start_period 90s)가 있어 `docker compose ps`가
+  `healthy`가 되면 UI 준비 완료다. `docker compose up -d --wait`로 준비될 때까지 대기 가능.
+- **마운트 오류 조기 경고**: entrypoint가 시작 시 `DATASETS_DIR`/`HF_HOME` 실제 경로와, 비어 있으면
+  경고를 로그로 출력한다(`docker compose logs`). 경로 오타/`.env` 누락을 바로 잡을 수 있다.
+- **GPU 세대**: torch 휠 채널은 `TORCH_INDEX_URL` 빌드아그로 파일 수정 없이 교체
+  (`.env`에 넣거나 `docker compose build --build-arg TORCH_INDEX_URL=...`). 기본은 stable cu128.
+- **파일 소유권**: 컨테이너가 기본 root라 datasets에 쓰는 rejects/recaption이 root 소유가 된다.
+  ai-toolkit이 일반 사용자로 도는 공유 서버라면 `docker-compose.yml`의 `user: "1000:1000"`
+  (실제 uid:gid로) 주석을 풀어 그 사용자로 쓰게 한다 — 단, `curation_db`/`curation_runs` 볼륨도
+  그 uid가 쓸 수 있어야 한다.
 
 ## 영속성 (볼륨)
 - **datasets** — `${DATASETS_DIR}` 바인드 (ai-toolkit과 공유, 정리 결과 보존)

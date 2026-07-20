@@ -61,12 +61,20 @@ $S curate-ui status | $S curate-ui stop
 
 ## Docker / 경로 공유 (standalone 배포)
 `paths.yaml`(예시: `paths.yaml.example`)로 datasets/HF캐시/python 경로를 선언하면 하드코딩 없이
-ComfyUI/ai-toolkit와 **모델·데이터셋을 공유**한다(env가 최우선). GPU Docker 실행:
+ComfyUI/ai-toolkit와 **모델·데이터셋을 공유**한다(env가 최우선). 경로가 서버마다 흩어져 있어도
+(ComfyUI·ai-toolkit·models가 제각각) **두 경로만** 지정하면 원커맨드로 뜬다:
 ```bash
-DATASETS_DIR=/data/workspace/imagen-lab/datasets \
-HF_HOME=/data/workspace/imagen-lab/downloads/hf \
-docker compose up --build      # → :8680
+cd curation
+cp .env.example .env            # DATASETS_DIR, HF_HOME 만 이 서버 경로로 수정
+docker compose up --build -d --wait   # → :8680 (healthy까지 대기)
 ```
+운영 노브(전부 `.env`/빌드아그로 조절, 파일 수정 불필요):
+- `CURATION_PORT` — 호스트 포트(기본 8680). 기존 UI와 포트 충돌 시 변경.
+- `TORCH_INDEX_URL` — torch 휠 채널(기본 stable cu128). stable cu128 torch 2.11이 **Blackwell/sm_120까지 커버**하므로 대개 불필요.
+- `user:` (compose 주석) — 공유 서버에서 rejects/recaption 파일 소유권 조정.
+- 기동 시 마운트 프리플라이트 경고 + `/api/gpu` healthcheck 내장.
+
+**검증 플랫폼**: RTX A6000(sm_86, imagen-lab), RTX PRO 6000 Blackwell(sm_120, comfy-models) — 빌드·기동·GPU 연산 확인.
 자세한 내용: `docs/docker.md`.
 
 ## 튜닝
