@@ -1,0 +1,47 @@
+# Run curation from the PREBUILT Docker Hub image — no local build (~21GB).
+#
+#   cp .env.example .env      # set DATASETS_DIR, HF_HOME for this host
+#   docker compose -f docker-compose.pull.yml pull
+#   docker compose -f docker-compose.pull.yml up -d --wait   # -> :8680
+#
+# Use the regular docker-compose.yml instead when you want to build from source
+# (local changes / a different TORCH_INDEX_URL). This file is self-contained;
+# do NOT combine it with docker-compose.yml.
+services:
+  curation:
+    image: ${CURATION_IMAGE:-taeyong75/imagen-curation:latest}
+    pull_policy: always
+    ports:
+      - "${CURATION_PORT:-8680}:8680"
+    environment:
+      IMAGEN_ROOT: /app
+      CURATION_PYTHON: /usr/bin/python3
+      HF_HOME: /data/hf
+      DATASETS_DIR: /data/datasets
+    volumes:
+      # datasets — SAME folder ai-toolkit trains from (read/write; rejects moved here)
+      - ${DATASETS_DIR:-./datasets}:/data/datasets
+      # VL-model / HF cache — SHARED with ComfyUI/ai-toolkit (no re-download)
+      - ${HF_HOME:-./hf}:/data/hf
+      # reports/thumbnails so the gallery survives restarts
+      - curation_runs:/app/curation/runs
+      # job history DB (symlinked here by the entrypoint) — persists across recreation
+      - curation_db:/data/db
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8680/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+volumes:
+  curation_runs:
+  curation_db:
