@@ -3,10 +3,22 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import TopBar from "@/components/TopBar";
 
+// Recommended VL evaluators. "" = use the server-configured default model.
+// "__custom__" reveals a free-text field for any HF repo id or local path.
+const MODEL_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "기본값 (서버 설정)" },
+  { value: "huihui-ai/Huihui-Qwen3-VL-8B-Instruct-abliterated", label: "Qwen3-VL 8B abliterated (비검열, 기본)" },
+  { value: "Qwen/Qwen3-VL-8B-Instruct", label: "Qwen3-VL 8B Instruct (공식)" },
+  { value: "Qwen/Qwen3-VL-4B-Instruct", label: "Qwen3-VL 4B Instruct (빠름)" },
+  { value: "Qwen/Qwen3-VL-2B-Instruct", label: "Qwen3-VL 2B Instruct (최속·경량)" },
+  { value: "__custom__", label: "직접 입력 (HF repo id / 로컬 경로)" },
+];
+
 export default function NewJob() {
   const router = useRouter();
   const [datasets, setDatasets] = useState<any[]>([]);
   const [gpus, setGpus] = useState<any[]>([]);
+  const [defaultModel, setDefaultModel] = useState("");
   const [form, setForm] = useState<any>({
     source_folder: "",
     mode: "auto",
@@ -18,13 +30,16 @@ export default function NewJob() {
     target: "",
     per_bucket_cap: "",
     gpu_ids: "0",
+    model: "",
+    modelCustom: "",
   });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    fetch("/api/settings").then((r) => r.json()).then((d) => setDefaultModel(d.default_model || ""));
     fetch("/api/datasets").then((r) => r.json()).then((d) => {
       setDatasets(d.datasets || []);
-      if (d.datasets?.[0]) setForm((f: any) => ({ ...f, source_folder: d.datasets[0].name }));
+      if (d.datasets?.[0]) setForm((f: any) => ({ ...f, source_folder: d.datasets[0].path }));
     });
     fetch("/api/gpu").then((r) => r.json()).then((d) => {
       const g = d.gpus || [];
@@ -42,11 +57,13 @@ export default function NewJob() {
   const submit = async () => {
     setBusy(true);
     const cap = form.per_bucket_cap ? Number(form.per_bucket_cap) : null;
+    const model = form.model === "__custom__" ? (form.modelCustom || undefined) : (form.model || undefined);
     const res = await fetch("/api/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        model,
         target: form.target ? Number(form.target) : null,
         coverage: cap ? { per_bucket_cap: cap } : undefined,
       }),
@@ -70,10 +87,28 @@ export default function NewJob() {
         <div className="card p-5 divide-y divide-edge">
           <Row label="데이터셋">
             <select className="input" value={form.source_folder} onChange={(e) => set("source_folder", e.target.value)}>
-              {datasets.map((d) => (
-                <option key={d.name} value={d.name}>{d.name} ({d.images})</option>
+              {datasets.map((d) => {
+                const multiRoot = new Set(datasets.map((x) => x.root)).size > 1;
+                return (
+                  <option key={d.path} value={d.path}>
+                    {d.name} ({d.images}){multiRoot ? ` · ${d.root}` : ""}
+                  </option>
+                );
+              })}
+            </select>
+          </Row>
+          <Row label="평가 모델 (VL)">
+            <select className="input" value={form.model} onChange={(e) => set("model", e.target.value)}>
+              {MODEL_OPTIONS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.value === "" && defaultModel ? `기본값 (${defaultModel})` : m.label}
+                </option>
               ))}
             </select>
+            {form.model === "__custom__" && (
+              <input className="input mt-2" placeholder="예: Qwen/Qwen3-VL-8B-Instruct 또는 /경로/모델"
+                value={form.modelCustom} onChange={(e) => set("modelCustom", e.target.value)} />
+            )}
           </Row>
           <Row label="모드">
             <select className="input" value={form.mode} onChange={(e) => set("mode", e.target.value)}>

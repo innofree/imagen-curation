@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Curation Lab UX 개선 리포트 — 2026-07</title>
+<style>
+  :root{
+    --bg:#101012; --panel:#1b1b1d; --panel2:#232326; --edge:#333338;
+    --fg:#e6e6e8; --muted:#9a9aa2; --dim:#6b6b73;
+    --blue:#60a5fa; --green:#86efac; --amber:#fcd34d; --red:#fca5a5;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.6}
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 24px 96px}
+  h1{font-size:26px;margin:0 0 6px} h2{font-size:19px;margin:44px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--edge)}
+  h3{font-size:15px;margin:26px 0 10px;color:var(--fg)}
+  p{margin:8px 0;color:var(--fg)} .muted{color:var(--muted)} .dim{color:var(--dim);font-size:13px}
+  code{background:var(--panel2);border:1px solid var(--edge);border-radius:5px;padding:1px 6px;font-size:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .lead{color:var(--muted);font-size:15px;max-width:80ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px}
+  .chip{background:var(--panel2);border:1px solid var(--edge);border-radius:999px;padding:4px 12px;font-size:12.5px;color:var(--muted)}
+  .callout{background:#2a1e1e;border:1px solid #5b2b2b;border-left:4px solid #b45454;border-radius:8px;padding:14px 18px;margin:18px 0}
+  .callout.ok{background:#16241b;border-color:#2c5238;border-left-color:#4ea36a}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--edge);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+  .sev{font-weight:700;white-space:nowrap}
+  .sev.h{color:var(--red)} .sev.m{color:var(--amber)} .sev.l{color:var(--muted)}
+  .done{color:var(--green);white-space:nowrap;font-weight:600}
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}
+  .cmp .col{background:var(--panel);border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+  .cmp .lbl{padding:8px 12px;font-size:12px;font-weight:700;letter-spacing:.03em;border-bottom:1px solid var(--edge)}
+  .lbl.b{color:var(--red)} .lbl.a{color:var(--green)}
+  .cmp img,.shot img{display:block;width:100%;height:auto}
+  .shot{background:var(--panel);border:1px solid var(--edge);border-radius:10px;overflow:hidden;margin:14px 0}
+  .shot .cap{padding:8px 12px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--edge)}
+  ul{margin:8px 0;padding-left:22px} li{margin:4px 0}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:14px}
+  .gallery figure{margin:0;background:var(--panel);border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+  .gallery figcaption{padding:8px 12px;font-size:13px;color:var(--muted);border-top:1px solid var(--edge)}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:5px;border:1px solid var(--edge);color:var(--muted);margin-left:6px}
+  a{color:var(--blue)}
+  hr{border:none;border-top:1px solid var(--edge);margin:36px 0}
+  @media (max-width:720px){.cmp{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Curation Lab — UX 개선 리포트</h1>
+  <p class="lead">각 페이지의 폰트 가독성, 하부 페이지 상단 버튼·메뉴, 분석 완료 페이지의 이미지 상태(깨짐) 세 축을 UX 관점에서 점검하고 개선했습니다. 실행 중인 앱을 실제 데이터(완료된 <code>newface_v1</code> 작업, 197장 입력 / 30장 유지, 라이브 A6000 GPU 2장)로 렌더해 캡처했습니다.</p>
+
+  <div class="meta">
+    <span class="chip">날짜 · 2026-07-21</span>
+    <span class="chip">브랜치 · <code>ux/legibility-images-topbar</code></span>
+    <span class="chip">스택 · Next.js 15 · App Router · Tailwind</span>
+    <span class="chip">뷰포트 · 1440px (+ 560px 좁은 화면)</span>
+  </div>
+  <p class="dim">캡처 방식: 원본/개선 두 빌드를 각각 구동 후 headless Chromium(2x DPR, 다크)으로 동일 스크립트 캡처. 스크린샷의 데이터셋 이미지는 사용자 소유 자료이므로 외부에 게시하지 않고 리포지토리 내 로컬 문서로만 보관합니다.</p>
+
+  <!-- SUMMARY -->
+  <h2>요약 — 적용된 개선</h2>
+  <table>
+    <thead><tr><th>영역</th><th>심각도</th><th>문제</th><th>개선</th><th>상태</th></tr></thead>
+    <tbody>
+      <tr><td>이미지</td><td class="sev h">높음</td><td>썸네일/원본 파일이 없거나 이동되면 브라우저 기본 <b>깨진 이미지 아이콘</b> 노출 (리뷰 모드는 리젝트를 이동/삭제하므로 상시 발생)</td><td><code>onError</code> 폴백 컴포넌트 — "이미지 없음 / 이동됨" 플레이스홀더 + 파일명, 로딩 스피너</td><td class="done">적용</td></tr>
+      <tr><td>이미지</td><td class="sev h">높음</td><td>리뷰 갤러리가 전체(수백~수천 장)를 한 번에 렌더 → 문서 높이 <b>10,652px</b>, 초기 렉/메모리</td><td>60장 단위 "더 보기" 점진 렌더 (초기 <b>3,576px</b>로 축소)</td><td class="done">적용</td></tr>
+      <tr><td>이미지</td><td class="sev m">중간</td><td>이미지 API가 <code>no-store</code>로 캐시 차단 → 스크롤/재방문마다 재다운로드; 일부 포맷(gif/tiff/avif/heic) 미지원 → 깨짐</td><td>썸네일 캐시 허용(<code>max-age</code>), 포맷 맵 확장</td><td class="done">적용</td></tr>
+      <tr><td>상단 버튼</td><td class="sev h">높음</td><td>TopBar가 줄바꿈·truncate 없음 → 긴 제목 + 다수 버튼이 <b>세로 붕괴/화면 밖 넘침</b> (좁은 폭·폰트 변화 시 심화)</td><td>제목 <code>truncate</code>, 컨트롤 <code>flex-wrap</code>·<code>shrink-0</code>, 높이 가변</td><td class="done">적용</td></tr>
+      <tr><td>상단 버튼</td><td class="sev h">높음</td><td>파괴적 "삭제"가 중립 회색 버튼 → 오클릭 위험, 위험 신호 없음</td><td>danger(빨강) 스타일 + 휴지통 아이콘 + <code>aria-label</code></td><td class="done">적용</td></tr>
+      <tr><td>상단 버튼</td><td class="sev m">중간</td><td>버튼에 키보드 포커스 링 없음(접근성), 아이콘 버튼 라벨 없음, 토글 타깃 24px</td><td><code>focus-visible</code> 링, <code>aria-label</code>/<code>aria-pressed</code>, 토글 32px</td><td class="done">적용</td></tr>
+      <tr><td>폰트</td><td class="sev m">중간</td><td>실시간 갱신 숫자(GPU %·VRAM·step)가 비례폭이라 2.5초마다 <b>좌우로 떨림</b></td><td>해당 수치에 <code>tabular-nums</code> 적용</td><td class="done">적용</td></tr>
+      <tr><td>폰트</td><td class="sev m">중간</td><td>다크 배경에서 한글 렌더가 두껍고 뭉개짐; badge 11px로 과소</td><td><code>-webkit-font-smoothing:antialiased</code> 등, badge 12px 상향</td><td class="done">적용</td></tr>
+      <tr><td>일관성</td><td class="sev l">낮음</td><td>사이드바 로고 이모지(🖼️)가 두부(□)로 깨짐; 상태 뱃지 보더 불일치; Help 언어 토글이 CTA처럼 보임</td><td>lucide 아이콘 교체; 뱃지 보더 통일; 토글 선택 스타일 분리</td><td class="done">적용</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <b>🔴 이미지 깨짐의 근본 원인 (환경)</b><br>
+    현재 실환경에서 <b>모든 이미지가 깨져</b> 있었습니다. DB에 저장된 절대경로가 리팩터 이전 위치(<code>curation/runs/…</code>)를 가리키는데, 소스가 <code>app/</code> 아래로 이동(<code>curation/app/curation/runs/…</code>)하면서 경로가 어긋나 API가 404를 반환합니다. 파일 자체는 존재합니다.<br>
+    <span class="dim">이번 브랜치의 코드 개선(플레이스홀더 폴백)은 <b>파일이 없을 때 UX가 무너지지 않도록</b> 하는 방어입니다. 실제 이미지를 다시 보이게 하려면 저장 경로 정합성 수정이 필요합니다 — 운영 임시조치로 호환 심링크(<code>curation/runs → curation/app/curation/runs</code>)를 적용해 아래 개선 스크린샷의 썸네일을 복원했습니다. 근본 해결(잡 생성 시 상대경로 저장 또는 DB 마이그레이션)은 별도 권장 항목입니다.</span>
+  </div>
+
+  <!-- AREA 1: IMAGES -->
+  <h2>1. 분석 완료 페이지 — 이미지 상태 / 깨짐</h2>
+
+  <h3>리뷰 갤러리 <span class="tag">before → after</span></h3>
+  <div class="cmp">
+    <div class="col"><div class="lbl b">BEFORE — 전 썸네일 깨진 아이콘 + 파일명만</div><img src="assets/before/review.png" alt="review before"></div>
+    <div class="col"><div class="lbl a">AFTER — 썸네일 복원 · 로고 아이콘 · TopBar 정돈 · 60장 페이징</div><img src="assets/after/review.png" alt="review after (thumbnails blurred)"></div>
+  </div>
+  <p class="dim">※ AFTER 갤러리의 썸네일 <b>사진은 개인정보 보호를 위해 블러 처리</b>했습니다(데이터셋 이미지 비공개). UI·배지·점수·레이아웃은 실제 그대로입니다.</p>
+  <ul>
+    <li>깨진 파일은 이제 <b>깨진 아이콘 대신 플레이스홀더</b>로 처리(아래 모달 참조), 로딩 중에는 스피너.</li>
+    <li>초기 렌더를 60장으로 제한하고 "더 보기"로 확장 — 문서 높이 10,652px → 3,576px.</li>
+    <li>keep/reject 토글 버튼 24px → 32px, <code>aria-label</code> 및 포커스 링 추가.</li>
+  </ul>
+
+  <h3>이미지 상세 모달 — 깨짐 방어의 핵심 <span class="tag">before → after</span></h3>
+  <div class="cmp">
+    <div class="col"><div class="lbl b">BEFORE — 깨진 이미지 아이콘 + alt 텍스트</div><img src="assets/before/review-modal.png" alt="modal before"></div>
+    <div class="col"><div class="lbl a">AFTER — "이미지 없음 / 이동됨" 플레이스홀더 + 파일명</div><img src="assets/after/review-modal.png" alt="modal after"></div>
+  </div>
+  <p class="dim">이 모달은 <b>원본 전체 해상도</b>를 로드합니다. 해당 이미지는 리젝트되어 <code>newface_v1_rejected/</code>로 이동된 상태라 원본이 실제로 없습니다. BEFORE는 깨진 글리프를 그대로 노출하지만, AFTER는 파일이 없어도 우아하게 폴백합니다 — 즉 개선 효과가 데이터 존재 여부와 무관하게 입증됩니다.</p>
+
+  <!-- AREA 2: TOPBAR -->
+  <h2>2. 하부 페이지 상단 버튼 · 메뉴</h2>
+  <h3>좁은 폭에서의 TopBar 붕괴 <span class="tag">560px · before → after</span></h3>
+  <div class="cmp">
+    <div class="col"><div class="lbl b">BEFORE — 제목 2줄, "갤러리 리뷰" 3줄 세로 붕괴·상단 넘침, "삭제" 찌그러짐</div><img src="assets/before/job-detail-narrow.png" alt="narrow before"></div>
+    <div class="col"><div class="lbl a">AFTER — 제목 1줄, 버튼 한 줄 정렬, 삭제 danger</div><img src="assets/after/job-detail-narrow.png" alt="narrow after"></div>
+  </div>
+  <ul>
+    <li>제목 <code>min-w-0 truncate</code>, 컨트롤 <code>shrink-0 + flex-wrap</code>로 폭·폰트 변화를 흡수.</li>
+    <li>"삭제" 버튼을 danger(빨강)+휴지통 아이콘으로 — 파괴적 액션의 시각적 경고.</li>
+    <li>모든 <code>.btn</code>에 <code>focus-visible</code> 링(키보드 접근성), 비활성 스타일 추가.</li>
+  </ul>
+
+  <h3>Help 언어 토글 <span class="tag">before → after</span></h3>
+  <div class="cmp">
+    <div class="col"><div class="lbl b">BEFORE — 선택 언어가 파란 CTA 버튼처럼 보임</div><img src="assets/before/help.png" alt="help before"></div>
+    <div class="col"><div class="lbl a">AFTER — 선택 상태(옅은 파랑 아웃라인)로 토글임을 명확히</div><img src="assets/after/help.png" alt="help after"></div>
+  </div>
+
+  <!-- AREA 3: FONT -->
+  <h2>3. 폰트 · 렌더링</h2>
+  <div class="cmp">
+    <div class="col"><div class="lbl b">BEFORE — 로고 🖼️ 두부(□), 비례폭 숫자</div><img src="assets/before/dashboard.png" alt="dashboard before"></div>
+    <div class="col"><div class="lbl a">AFTER — 로고 아이콘, 등폭 숫자, antialiased</div><img src="assets/after/dashboard.png" alt="dashboard after"></div>
+  </div>
+  <ul>
+    <li>GPU 사용률·VRAM·온도·전력·step 등 <b>주기적으로 갱신되는 수치</b>에 <code>tabular-nums</code> → 폭 흔들림 제거.</li>
+    <li><code>-webkit-font-smoothing:antialiased</code> · <code>text-rendering:optimizeLegibility</code>로 한글 획 선명화.</li>
+    <li><code>.badge</code> 11px → 12px, 깨지던 이모지 로고를 lucide <code>Images</code> 아이콘으로 교체.</li>
+  </ul>
+
+  <hr>
+
+  <!-- PER-PAGE GALLERY -->
+  <h2>페이지별 최종 화면 (AFTER)</h2>
+  <div class="gallery">
+    <figure><img src="assets/after/dashboard.png" alt="dashboard"><figcaption>Dashboard</figcaption></figure>
+    <figure><img src="assets/after/jobs.png" alt="jobs"><figcaption>Jobs</figcaption></figure>
+    <figure><img src="assets/after/job-detail.png" alt="job detail"><figcaption>Job 상세</figcaption></figure>
+    <figure><img src="assets/after/new.png" alt="new job"><figcaption>New Curation</figcaption></figure>
+    <figure><img src="assets/after/review.png" alt="review"><figcaption>갤러리 리뷰</figcaption></figure>
+    <figure><img src="assets/after/settings.png" alt="settings"><figcaption>Settings</figcaption></figure>
+    <figure><img src="assets/after/help.png" alt="help"><figcaption>Help / 도움말</figcaption></figure>
+  </div>
+
+  <hr>
+
+  <!-- CHANGED FILES -->
+  <h2>변경 파일</h2>
+  <table>
+    <thead><tr><th>파일</th><th>변경 내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/components/ImageWithFallback.tsx</code></td><td><b>신규</b> — onError 플레이스홀더 + 로딩 스피너 이미지 래퍼</td></tr>
+      <tr><td><code>src/app/globals.css</code></td><td>antialiased·focus 링·disabled·<code>.tnum</code>·badge 12px</td></tr>
+      <tr><td><code>src/components/TopBar.tsx</code></td><td>제목 truncate, 컨트롤 wrap/shrink, 가변 높이</td></tr>
+      <tr><td><code>src/app/review/[jobID]/page.tsx</code></td><td>폴백 이미지, 60장 페이징, 토글 32px+aria, tnum</td></tr>
+      <tr><td><code>src/components/ImageDetail.tsx</code></td><td>폴백 이미지, aria-label/pressed, tnum</td></tr>
+      <tr><td><code>src/app/api/img/route.ts</code></td><td>포맷 맵 확장, 캐시 헤더</td></tr>
+      <tr><td><code>src/components/Sidebar.tsx</code></td><td>🖼️ 이모지 → lucide <code>Images</code> 아이콘</td></tr>
+      <tr><td><code>src/components/StatusBadge.tsx</code></td><td>queued/stopped 보더 통일</td></tr>
+      <tr><td><code>src/components/GpuStatus.tsx</code></td><td>실시간 수치 tnum</td></tr>
+      <tr><td><code>src/app/dashboard/page.tsx</code></td><td>GPU 칩·step tnum</td></tr>
+      <tr><td><code>src/app/jobs/[jobID]/page.tsx</code></td><td>삭제 danger+아이콘, step/stat tnum</td></tr>
+      <tr><td><code>src/app/help/page.tsx</code></td><td>언어 토글 선택 스타일 + aria-pressed</td></tr>
+      <tr><td><code>next.config.mjs</code></td><td><code>distDir</code> env 스위치(캡처용 별도 빌드; 기본값 <code>.next</code> 유지)</td></tr>
+    </tbody>
+  </table>
+
+  <!-- REMAINING -->
+  <h2>후속 권장 (이번 범위 밖)</h2>
+  <div class="callout ok">
+    <ul style="margin:0">
+      <li><b>저장 경로 정합성</b> — 잡 생성 시 <code>report_dir</code>/<code>thumb_path</code>를 절대경로 대신 <code>IMAGEN_ROOT</code> 상대경로로 저장하거나, 기존 DB를 마이그레이션. (현재 심링크는 임시조치)</li>
+      <li><b>초대형 데이터셋 가상화</b> — 수천 장 이상이면 "더 보기" 대신 windowing(react-window 등) 도입 고려.</li>
+      <li><b>HEIC/AVIF 서버 변환</b> — content-type은 교정했으나 브라우저가 못 그리는 포맷은 <code>sharp</code>로 JPEG 트랜스코드 필요.</li>
+      <li><b>썸네일 폴백 리사이즈</b> — <code>thumb_path</code>가 비어 원본을 로드하는 경우 서버측 축소.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

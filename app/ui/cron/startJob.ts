@@ -2,9 +2,9 @@ import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import { PrismaClient } from "@prisma/client";
-import { IMAGEN_ROOT, PACKAGE_DIR, HF_HOME, DB_PATH, resolvePython } from "../src/lib/paths";
-
-const LOG_DIR = path.resolve(IMAGEN_ROOT, "logs");
+import {
+  PACKAGE_DIR, HF_HOME, DB_PATH, LOG_DIR, DEFAULT_MODEL, HF_TOKEN, resolvePython,
+} from "../src/lib/paths";
 
 /**
  * Spawn the Python curation pipeline for a job, fully detached (survives
@@ -35,7 +35,8 @@ export function startJob(job: any, mode: "analyze" | "auto" | "apply") {
   if (p.quantize === true) args.push("--quantize", "--low-vram");
   else if (p.quantize === false) args.push("--no-quantize");
   if (p.auto_free_gpu === false) args.push("--no-free-gpu");
-  if (p.model_name_or_path) args.push("--model", p.model_name_or_path);
+  // Per-job model pin (New Curation) or the configured default model.
+  args.push("--model", p.model_name_or_path || DEFAULT_MODEL);
 
   fs.mkdirSync(LOG_DIR, { recursive: true });
   const logPath = path.join(LOG_DIR, `curate-${job.id}.log`);
@@ -45,6 +46,8 @@ export function startJob(job: any, mode: "analyze" | "auto" | "apply") {
     ...process.env,
     HF_HOME,
     HF_HUB_ENABLE_HF_TRANSFER: "1",
+    // Optional token for gated/rate-limited HF pulls (huggingface_hub reads it).
+    ...(HF_TOKEN ? { HF_TOKEN } : {}),
     // `curation` package lives under app/ (PACKAGE_DIR), not the imagen-lab root.
     PYTHONPATH: PACKAGE_DIR,
     CUDA_DEVICE_ORDER: "PCI_BUS_ID",
