@@ -9,7 +9,7 @@
 # do NOT combine it with docker-compose.yml.
 services:
   curation:
-    image: ${CURATION_IMAGE:-taeyong75/imagen-curation:latest}
+    image: ${CURATION_IMAGE:-jimotmi/imagen-curation:latest}
     pull_policy: always
     ports:
       - "${CURATION_PORT:-8680}:8680"
