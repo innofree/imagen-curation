@@ -1,5 +1,6 @@
 "use client";
 import { X } from "lucide-react";
+import ImageWithFallback from "@/components/ImageWithFallback";
 
 function Row({ label, value, hint }: { label: string; value: any; hint?: string }) {
   return (
@@ -36,10 +37,16 @@ export default function ImageDetail({ img, onClose, onKeep, onReject }: {
       <div className="card max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col md:flex-row"
         onClick={(e) => e.stopPropagation()}>
         {/* image */}
-        <div className="md:w-1/2 bg-black flex items-center justify-center relative">
-          <img className="max-h-[92vh] w-full object-contain"
-            src={`/api/img?path=${encodeURIComponent(img.path)}`} alt={img.filename} />
-          <button className="absolute top-2 right-2 btn" onClick={onClose}><X size={16} /></button>
+        <div className="md:w-1/2 bg-black flex items-center justify-center relative min-h-[240px]">
+          <ImageWithFallback
+            className="w-full flex items-center justify-center"
+            imgClassName="max-h-[92vh] w-full object-contain min-h-[240px]"
+            src={`/api/img?path=${encodeURIComponent(img.path)}`}
+            fallbackSrc={img.thumb_path ? `/api/img?path=${encodeURIComponent(img.thumb_path)}` : undefined}
+            alt={img.filename}
+            note={img.filename}
+          />
+          <button className="absolute top-2 right-2 btn" onClick={onClose} aria-label="닫기"><X size={16} /></button>
         </div>
         {/* scorecard */}
         <div className="md:w-1/2 p-4 overflow-y-auto">
@@ -48,8 +55,8 @@ export default function ImageDetail({ img, onClose, onKeep, onReject }: {
               {decision === "keep" ? "KEEP" : "REJECT"}
             </span>
             <div className="flex gap-2">
-              <button className={`btn ${decision === "keep" ? "btn-primary" : ""}`} onClick={onKeep}>✓ keep</button>
-              <button className={`btn ${decision === "reject" ? "btn-danger" : ""}`} onClick={onReject}>✗ reject</button>
+              <button className={`btn ${decision === "keep" ? "btn-primary" : ""}`} onClick={onKeep} aria-label="keep으로 설정" aria-pressed={decision === "keep"}>✓ keep</button>
+              <button className={`btn ${decision === "reject" ? "btn-danger" : ""}`} onClick={onReject} aria-label="reject로 설정" aria-pressed={decision === "reject"}>✗ reject</button>
             </div>
           </div>
           <div className="text-[11px] text-neutral-500 break-all mb-3">{img.filename}</div>
@@ -63,15 +70,15 @@ export default function ImageDetail({ img, onClose, onKeep, onReject }: {
           {/* 종합 점수 */}
           <h4 className="text-xs uppercase text-neutral-500 mt-2 mb-1">종합 점수</h4>
           <div className="mb-1">
-            <div className="flex justify-between text-xs"><span className="text-neutral-400">품질 점수</span><span>{(img.quality_score ?? 0).toFixed(2)} / 1.00</span></div>
+            <div className="flex justify-between text-xs"><span className="text-neutral-400">품질 점수</span><span className="tnum">{(img.quality_score ?? 0).toFixed(2)} / 1.00</span></div>
             <Bar frac={img.quality_score ?? 0} color="bg-sky-500" />
           </div>
           <div className="mb-1">
-            <div className="flex justify-between text-xs"><span className="text-neutral-400">학습 적합도 (VL)</span><span>{vl.training_suitability ?? "?"} / 100</span></div>
+            <div className="flex justify-between text-xs"><span className="text-neutral-400">학습 적합도 (VL)</span><span className="tnum">{vl.training_suitability ?? "?"} / 100</span></div>
             <Bar frac={(vl.training_suitability ?? 0) / 100} color="bg-emerald-500" />
           </div>
           <div className="mb-3">
-            <div className="flex justify-between text-xs"><span className="text-neutral-400">고유성 (uniqueness)</span><span>{(img.uniqueness ?? 0).toFixed(2)} / 1.00</span></div>
+            <div className="flex justify-between text-xs"><span className="text-neutral-400">고유성 (uniqueness)</span><span className="tnum">{(img.uniqueness ?? 0).toFixed(2)} / 1.00</span></div>
             <Bar frac={img.uniqueness ?? 0} color="bg-violet-500" />
           </div>
 

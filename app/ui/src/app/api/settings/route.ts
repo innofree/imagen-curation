@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { IMAGEN_ROOT, DATASETS_DIR, HF_HOME, DB_PATH, resolvePython } from "@/lib/paths";
-import { DEFAULT_MODEL } from "@/lib/constants";
+import {
+  IMAGEN_ROOT, DATASETS_DIR, HF_HOME, DB_PATH, resolvePython,
+  DEFAULT_MODEL, HF_TOKEN, EXTRA_DATASET_DIRS,
+} from "@/lib/paths";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +18,9 @@ export async function GET() {
   return NextResponse.json({
     imagen_root: IMAGEN_ROOT,
     datasets_dir: DATASETS_DIR,
+    extra_dataset_dirs: EXTRA_DATASET_DIRS.join(", ") || "(none)",
     hf_home: HF_HOME,
+    hf_token_configured: !!HF_TOKEN,
     db_path: DB_PATH,
     python: resolvePython(),
     default_model: DEFAULT_MODEL,

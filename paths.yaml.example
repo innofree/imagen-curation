@@ -28,3 +28,15 @@ comfyui_models: /data/workspace/imagen-lab/models
 # Optional: imagen-lab service manager for idle-GPU reclaim (absent in Docker).
 imagen_lab_script: /data/workspace/imagen-lab/scripts/imagen-lab.sh
 run_dir: /data/workspace/imagen-lab/run
+
+# Optional: default VL evaluator model (New Curation default + worker fallback).
+# Overridable per-job in the UI. env DEFAULT_MODEL wins over this.
+# default_model: huihui-ai/Huihui-Qwen3-VL-8B-Instruct-abliterated
+
+# Optional: HuggingFace token for gated / rate-limited model pulls. env HF_TOKEN
+# (or HUGGING_FACE_HUB_TOKEN) wins. Injected into the pipeline worker as HF_TOKEN.
+# hf_token: hf_xxxxxxxxxxxxxxxxxxxx
+
+# Optional: extra dataset roots scanned in New Curation in addition to
+# datasets_dir. Comma- or newline-separated absolute paths. env EXTRA_DATASET_DIRS wins.
+# extra_dataset_dirs: /mnt/nas/datasets, /data/scratch/sets

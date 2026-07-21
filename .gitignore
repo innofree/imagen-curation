@@ -34,3 +34,7 @@ paths.yml
 !.env.example
 .DS_Store
 Thumbs.db
+
+# Local Codex CLI config (sandbox toggle) and Claude Code session state
+.codex/
+.claude/

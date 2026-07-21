@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, useRef, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import StatusBadge from "@/components/StatusBadge";
+import { Trash2, Terminal, ChevronRight } from "lucide-react";
 
 const VERDICT_LABEL: Record<string, string> = {
   sufficient: "✅ 충분", marginal: "⚠️ 보통", insufficient: "❌ 부족",
@@ -13,6 +14,9 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
   const { jobID } = use(params);
   const router = useRouter();
   const [job, setJob] = useState<any>(null);
+  const [showLog, setShowLog] = useState(false);
+  const [log, setLog] = useState("");
+  const logRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
     const load = () => fetch(`/api/jobs/${jobID}`).then((r) => r.json()).then((d) => setJob(d.job));
@@ -20,6 +24,24 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
     const t = setInterval(load, 2000);
     return () => clearInterval(t);
   }, [jobID]);
+
+  // Poll the worker log while the panel is open; keep polling if the job is
+  // active so progress streams in, then stop once it settles.
+  useEffect(() => {
+    if (!showLog) return;
+    const load = () =>
+      fetch(`/api/jobs/${jobID}/log`).then((r) => r.json()).then((d) => setLog(d.log || "(로그 없음)"));
+    load();
+    const active = job && ["running", "analyzing", "applying", "queued", "apply_queued"].includes(job.status);
+    if (!active) return;
+    const t = setInterval(load, 2000);
+    return () => clearInterval(t);
+  }, [showLog, jobID, job?.status]);
+
+  // Keep the log scrolled to the newest line as it streams.
+  useEffect(() => {
+    if (showLog && logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [log, showLog]);
 
   if (!job) return <div className="p-6 text-neutral-500">로딩...</div>;
   const verdict = job.verdict ? JSON.parse(job.verdict) : null;
@@ -49,7 +71,7 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
           <Link className="btn" href={`/review/${jobID}`}>갤러리 리뷰</Link>
         )}
         {canApply && <button className="btn btn-primary" onClick={apply}>적용</button>}
-        <button className="btn" onClick={del}>삭제</button>
+        <button className="btn btn-danger" onClick={del} aria-label="작업 삭제"><Trash2 size={14} /> 삭제</button>
       </TopBar>
       <div className="p-5 space-y-5">
         <div className="card p-4 text-sm">
@@ -60,7 +82,24 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
               <div className="h-full bg-blue-500 transition-all" style={{ width: `${(100 * job.step) / job.total_steps}%` }} />
             </div>
           )}
-          <div className="mt-1 text-xs text-neutral-500">{job.step}/{job.total_steps}</div>
+          <div className="mt-1 text-xs text-neutral-500 tnum">{job.step}/{job.total_steps}</div>
+        </div>
+
+        {/* Worker log (tail) — live pipeline output */}
+        <div className="card">
+          <button
+            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-neutral-300 hover:bg-panel2 rounded-lg"
+            onClick={() => setShowLog((s) => !s)} aria-expanded={showLog}>
+            <ChevronRight size={15} className={`transition-transform ${showLog ? "rotate-90" : ""}`} />
+            <Terminal size={15} /> 작업 로그
+            {active && <span className="ml-1 text-[11px] text-blue-300">· live</span>}
+          </button>
+          {showLog && (
+            <pre ref={logRef}
+              className="mx-4 mb-4 mt-1 max-h-96 overflow-auto rounded-md bg-[#0c0c0e] border border-edge p-3 text-[11px] leading-relaxed text-neutral-300 whitespace-pre-wrap break-all">
+              {log || "로딩..."}
+            </pre>
+          )}
         </div>
 
         {verdict && (
@@ -77,10 +116,10 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
               )}
               {s && (
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <Stat label="입력" v={s.n_input} />
-                  <Stat label="최종 유지" v={s.n_final_keep} accent />
-                  <Stat label="품질/중복 리젝트" v={s.n_hard_reject} />
-                  <Stat label="과다버킷 리젝트" v={s.n_overflow_reject} />
+                  <Stat label="입력" v={s.n_input} href={`/review/${jobID}?filter=all`} />
+                  <Stat label="최종 유지" v={s.n_final_keep} accent href={`/review/${jobID}?filter=keep`} />
+                  <Stat label="품질/중복 리젝트" v={s.n_hard_reject} href={`/review/${jobID}?filter=hard`} />
+                  <Stat label="과다버킷 리젝트" v={s.n_overflow_reject} href={`/review/${jobID}?filter=overflow`} />
                   <Stat label="정면 얼굴" v={s.front_face} />
                   <Stat label="3/4" v={s.three_quarter} />
                   <Stat label="프로파일" v={s.profiles} />
@@ -113,11 +152,20 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
   );
 }
 
-function Stat({ label, v, accent }: { label: string; v: any; accent?: boolean }) {
-  return (
-    <div className="bg-panel2 rounded-md px-3 py-2">
+function Stat({ label, v, accent, href }: { label: string; v: any; accent?: boolean; href?: string }) {
+  const body = (
+    <>
       <div className="text-xs text-neutral-500">{label}</div>
-      <div className={`text-lg font-semibold ${accent ? "text-green-300" : ""}`}>{v}</div>
-    </div>
+      <div className={`text-lg font-semibold tnum ${accent ? "text-green-300" : ""}`}>{v}</div>
+    </>
+  );
+  const cls = "block bg-panel2 rounded-md px-3 py-2";
+  return href ? (
+    <Link href={href} className={`${cls} hover:bg-[#2c2c31] hover:ring-1 hover:ring-blue-500/40 transition-colors`}
+      title="이 목록을 갤러리에서 보기">
+      {body}
+    </Link>
+  ) : (
+    <div className={cls}>{body}</div>
   );
 }
