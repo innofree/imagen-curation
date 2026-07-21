@@ -84,8 +84,8 @@ export default function Dashboard() {
                   {/* 리소스 */}
                   <div className="flex flex-wrap gap-1 mt-1">
                     <Chip icon={Cpu} title="사용 GPU">
-                      GPU #{gi}
-                      {g ? ` · ${g.util}% · ${(g.memUsed / 1024).toFixed(1)}/${(g.memTotal / 1024).toFixed(0)}GB` : ""}
+                      <span className="tnum">GPU #{gi}
+                      {g ? ` · ${g.util}% · ${(g.memUsed / 1024).toFixed(1)}/${(g.memTotal / 1024).toFixed(0)}GB` : ""}</span>
                     </Chip>
                     <Chip title="VRAM 모드">VRAM {vramMode(p)}</Chip>
                     {p.auto_free_gpu !== false ? <Chip title="유휴 GPU 자동 확보">idle-reclaim</Chip> : null}
@@ -96,7 +96,7 @@ export default function Dashboard() {
                       <div className="h-full bg-blue-500 transition-all" style={{ width: `${(100 * j.step) / j.total_steps}%` }} />
                     </div>
                   )}
-                  {j.total_steps > 0 && <div className="text-[11px] text-neutral-500 mt-1">{j.step}/{j.total_steps}</div>}
+                  {j.total_steps > 0 && <div className="text-[11px] text-neutral-500 mt-1 tnum">{j.step}/{j.total_steps}</div>}
                 </Link>
               );
             })}

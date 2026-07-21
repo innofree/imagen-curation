@@ -1,15 +1,50 @@
 "use client";
-import { useEffect, useMemo, useState, use } from "react";
+import { useEffect, useMemo, useState, use, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import ImageDetail from "@/components/ImageDetail";
+import ImageWithFallback from "@/components/ImageWithFallback";
 
-export default function Review({ params }: { params: Promise<{ jobID: string }> }) {
+const PAGE = 60; // images rendered per "더 보기" step (avoids a 10k px DOM dump)
+
+// Filter categories. `keep`/`reject` follow the current (possibly user-overridden)
+// decision; `hard`/`overflow` mirror the analyze-time auto categories behind the
+// job-detail stat tiles (품질/중복 리젝트 vs 과다버킷 리젝트).
+type Filter = "all" | "keep" | "reject" | "hard" | "overflow";
+const FILTERS: { value: Filter; label: string }[] = [
+  { value: "all", label: "전체" },
+  { value: "keep", label: "유지" },
+  { value: "reject", label: "리젝트" },
+  { value: "hard", label: "품질/중복 리젝트" },
+  { value: "overflow", label: "과다버킷 리젝트" },
+];
+const isOverflow = (im: any) => /^over-represented bucket/.test(im.auto_reason || "");
+function inCategory(im: any, f: Filter): boolean {
+  switch (f) {
+    case "all": return true;
+    case "keep": return im.decision === "keep";
+    case "reject": return im.decision === "reject";
+    case "hard": return im.auto_decision === "reject" && !isOverflow(im);
+    case "overflow": return im.auto_decision === "reject" && isOverflow(im);
+  }
+}
+
+function ReviewInner({ params }: { params: Promise<{ jobID: string }> }) {
   const { jobID } = use(params);
   const [images, setImages] = useState<any[]>([]);
-  const [filter, setFilter] = useState<"all" | "keep" | "reject">("all");
+  const [filter, setFilter] = useState<Filter>("all");
   const [applying, setApplying] = useState(false);
   const [selected, setSelected] = useState<any | null>(null);
+  const [visible, setVisible] = useState(PAGE);
+
+  // Deep-link from the job-detail stat tiles: /review/<id>?filter=hard etc.
+  // Re-syncs whenever the URL's filter changes (not just on first mount), so
+  // client navigation between filter links updates the selection.
+  const urlFilter = useSearchParams().get("filter");
+  useEffect(() => {
+    if (urlFilter && FILTERS.some((x) => x.value === urlFilter)) setFilter(urlFilter as Filter);
+  }, [urlFilter]);
 
   const load = () =>
     fetch(`/api/jobs/${jobID}/images`).then((r) => r.json()).then((d) => setImages(d.images || []));
@@ -25,15 +60,25 @@ export default function Review({ params }: { params: Promise<{ jobID: string }> 
   };
   const toggle = (img: any) => setDecision(img, img.decision === "keep" ? "reject" : "keep");
 
+  // reset paging when the filter changes
+  useEffect(() => { setVisible(PAGE); }, [filter]);
+
+  const filtered = useMemo(
+    () => (filter === "all" ? images : images.filter((im) => inCategory(im, filter))),
+    [images, filter]
+  );
+
+  // Only render up to `visible` images; group that slice by bucket. Large jobs
+  // (hundreds/thousands) would otherwise mount every card at once.
   const groups = useMemo(() => {
     const g: Record<string, any[]> = {};
-    for (const im of images) {
-      if (filter !== "all" && im.decision !== filter) continue;
+    for (const im of filtered.slice(0, visible)) {
       (g[im.bucket || "(unbucketed)"] ||= []).push(im);
     }
     return g;
-  }, [images, filter]);
+  }, [filtered, visible]);
 
+  const shown = Math.min(visible, filtered.length);
   const keepCount = images.filter((i) => i.decision === "keep").length;
 
   const apply = async () => {
@@ -49,11 +94,9 @@ export default function Review({ params }: { params: Promise<{ jobID: string }> 
   return (
     <>
       <TopBar title="갤러리 리뷰">
-        <span className="text-xs text-neutral-400">유지 {keepCount} / 전체 {images.length}</span>
-        <select className="input w-28" value={filter} onChange={(e) => setFilter(e.target.value as any)}>
-          <option value="all">전체</option>
-          <option value="keep">유지</option>
-          <option value="reject">리젝트</option>
+        <span className="text-xs text-neutral-400 tnum">유지 {keepCount} / 전체 {images.length}</span>
+        <select className="input w-40" value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
+          {FILTERS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
         </select>
         <Link className="btn" href={`/jobs/${jobID}`}>작업</Link>
         <button className="btn btn-primary" disabled={applying} onClick={apply}>
@@ -72,13 +115,18 @@ export default function Review({ params }: { params: Promise<{ jobID: string }> 
                 <div key={im.id}
                   className={`card overflow-hidden border-2 ${im.decision === "keep" ? "border-green-600" : "border-red-700/70 opacity-80"}`}>
                   <div className="relative">
-                    <img loading="lazy" className="w-full h-40 object-cover cursor-zoom-in"
+                    <ImageWithFallback
+                      className="w-full h-40 cursor-zoom-in"
+                      imgClassName="w-full h-40 object-cover"
                       onClick={() => setSelected(im)}
-                      src={`/api/img?path=${encodeURIComponent(im.thumb_path || im.path)}`} alt={im.filename} />
+                      src={`/api/img?path=${encodeURIComponent(im.thumb_path || im.path)}`}
+                      alt={im.filename}
+                    />
                     <button
                       onClick={(e) => { e.stopPropagation(); toggle(im); }}
                       title="keep/reject 토글"
-                      className={`absolute top-1 right-1 w-6 h-6 rounded-full text-xs font-bold ${
+                      aria-label={im.decision === "keep" ? "reject로 변경" : "keep으로 변경"}
+                      className={`absolute top-1.5 right-1.5 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
                         im.decision === "keep" ? "bg-green-600 text-white" : "bg-red-700 text-white"
                       }`}>
                       {im.decision === "keep" ? "✓" : "✗"}
@@ -89,8 +137,8 @@ export default function Review({ params }: { params: Promise<{ jobID: string }> 
                       <span className="badge">{im.vl?.shot_type}</span>
                       <span className={`badge ${im.vl?.face_clarity !== "sharp" ? "text-amber-300" : ""}`}>face:{im.vl?.face_clarity}</span>
                     </div>
-                    <div className="text-blue-300">Q {im.quality_score?.toFixed(2)} · suit {im.vl?.training_suitability ?? "?"} · uniq {im.uniqueness?.toFixed(2)}</div>
-                    <div className="text-neutral-500">faceSharp {Math.round(im.face_sharpness)}</div>
+                    <div className="text-blue-300 tnum">Q {im.quality_score?.toFixed(2)} · suit {im.vl?.training_suitability ?? "?"} · uniq {im.uniqueness?.toFixed(2)}</div>
+                    <div className="text-neutral-500 tnum">faceSharp {Math.round(im.face_sharpness)}</div>
                     {im.decision === "reject" && <div className="text-red-300 truncate" title={im.auto_reason}>{im.auto_reason}</div>}
                     {im.user_decision && <div className="text-amber-300">수동 오버라이드</div>}
                   </div>
@@ -99,12 +147,30 @@ export default function Review({ params }: { params: Promise<{ jobID: string }> 
             </div>
           </section>
         ))}
+        {shown < filtered.length && (
+          <div className="flex flex-col items-center gap-2 pt-2">
+            <div className="text-xs text-neutral-500 tnum">{shown} / {filtered.length} 표시 중</div>
+            <button className="btn" onClick={() => setVisible((v) => v + PAGE)}>더 보기 ({filtered.length - shown}장)</button>
+          </div>
+        )}
         {images.length === 0 && <div className="text-neutral-500 text-sm">분석 결과가 없습니다. 분석이 끝났는지 확인하세요.</div>}
+        {images.length > 0 && filtered.length === 0 && (
+          <div className="text-neutral-500 text-sm">해당 필터에 맞는 이미지가 없습니다.</div>
+        )}
       </div>
       {selected && (
         <ImageDetail img={selected} onClose={() => setSelected(null)}
           onKeep={() => setDecision(selected, "keep")} onReject={() => setDecision(selected, "reject")} />
       )}
     </>
+  );
+}
+
+// useSearchParams() requires a Suspense boundary during prerender.
+export default function Review({ params }: { params: Promise<{ jobID: string }> }) {
+  return (
+    <Suspense fallback={null}>
+      <ReviewInner params={params} />
+    </Suspense>
   );
 }

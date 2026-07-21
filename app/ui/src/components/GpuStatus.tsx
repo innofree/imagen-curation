@@ -41,7 +41,7 @@ export default function GpuStatus() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3 text-xs text-neutral-400">
+              <div className="flex items-center gap-3 text-xs text-neutral-400 tnum">
                 <span className="flex items-center gap-1"><Thermometer size={13} />{g.temperature}°C</span>
                 <span className="flex items-center gap-1"><Zap size={13} />{Math.round(g.power)}W</span>
               </div>
@@ -50,7 +50,7 @@ export default function GpuStatus() {
               <div>
                 <div className="flex justify-between mb-1 text-neutral-400">
                   <span className="flex items-center gap-1"><Cpu size={13} /> GPU Load</span>
-                  <span>{g.util}%</span>
+                  <span className="tnum">{g.util}%</span>
                 </div>
                 <div className="h-1.5 bg-panel2 rounded-full overflow-hidden">
                   <div className={`h-full ${utilColor(g.util)}`} style={{ width: `${g.util}%` }} />
@@ -59,7 +59,7 @@ export default function GpuStatus() {
               <div>
                 <div className="flex justify-between mb-1 text-neutral-400">
                   <span>VRAM</span>
-                  <span>{gb(g.memUsed)} / {gb(g.memTotal)} GB · 여유 {gb(g.memFree)} GB</span>
+                  <span className="tnum">{gb(g.memUsed)} / {gb(g.memTotal)} GB · 여유 {gb(g.memFree)} GB</span>
                 </div>
                 <div className="h-1.5 bg-panel2 rounded-full overflow-hidden">
                   <div className={`h-full ${memColor(memFrac)}`} style={{ width: `${memFrac * 100}%` }} />

@@ -49,7 +49,7 @@ services:
     # Readiness: `docker compose up`/orchestrators can wait on this instead of
     # guessing when the Next server is serving.
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8680/api/gpu"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8680/api/health"]
       interval: 30s
       timeout: 5s
       retries: 5

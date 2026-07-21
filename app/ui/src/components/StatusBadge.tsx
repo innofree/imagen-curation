@@ -1,6 +1,6 @@
 const COLORS: Record<string, string> = {
-  queued: "bg-neutral-700 text-neutral-200",
-  apply_queued: "bg-neutral-700 text-neutral-200",
+  queued: "bg-neutral-700/60 text-neutral-200 border-neutral-500",
+  apply_queued: "bg-neutral-700/60 text-neutral-200 border-neutral-500",
   running: "bg-blue-600/30 text-blue-300 border-blue-600",
   analyzing: "bg-blue-600/30 text-blue-300 border-blue-600",
   applying: "bg-indigo-600/30 text-indigo-300 border-indigo-600",
@@ -8,7 +8,7 @@ const COLORS: Record<string, string> = {
   analyzed: "bg-amber-600/30 text-amber-300 border-amber-600",
   completed: "bg-green-600/30 text-green-300 border-green-600",
   error: "bg-red-600/30 text-red-300 border-red-600",
-  stopped: "bg-neutral-600/40 text-neutral-300",
+  stopped: "bg-neutral-600/40 text-neutral-300 border-neutral-500",
 };
 
 export default function StatusBadge({ status }: { status: string }) {

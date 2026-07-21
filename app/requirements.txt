@@ -9,6 +9,7 @@
 # so no separate install is needed there.
 
 transformers>=5.5
+accelerate            # required by transformers from_pretrained (device_map) for VL load
 optimum-quanto
 opencv-python
 Pillow

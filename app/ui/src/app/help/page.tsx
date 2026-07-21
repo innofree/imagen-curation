@@ -16,8 +16,8 @@ export default function HelpPage() {
       <TopBar title={locale === "ko" ? "도움말" : "Help"}>
         <div className="flex gap-1">
           {LOCALES.map((l) => (
-            <button key={l.value} onClick={() => change(l.value)}
-              className={`btn ${locale === l.value ? "btn-primary" : ""}`}>{l.label}</button>
+            <button key={l.value} onClick={() => change(l.value)} aria-pressed={locale === l.value}
+              className={`btn ${locale === l.value ? "border-blue-500 text-blue-300 bg-blue-600/15" : "text-neutral-400"}`}>{l.label}</button>
           ))}
         </div>
       </TopBar>
