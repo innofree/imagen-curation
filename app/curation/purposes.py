@@ -155,7 +155,7 @@ DEFAULT_PURPOSE = "face"
 
 PURPOSE_PRESETS: Dict[str, PurposePreset] = {
     "face": PurposePreset(
-        id="face", label="얼굴 / 정체성",
+        id="face", label="Face / Identity",
         eval_user=prompts.EVAL_USER,
         coerce_fn=prompts._coerce_face,
         quality_weights=QualityWeights(),  # original literals: 0.18/0.22/0.32/0.13/0.15
@@ -165,7 +165,7 @@ PURPOSE_PRESETS: Dict[str, PurposePreset] = {
         hard_reject_rules=["multiple_subjects", "face_blurry", "soft_face"],
     ),
     "full_body": PurposePreset(
-        id="full_body", label="전신 / 체형",
+        id="full_body", label="Full body",
         eval_user=prompts.EVAL_USER_FULL_BODY,
         coerce_fn=prompts._coerce_full_body,
         quality_weights=QualityWeights(w_res=0.25, w_global=0.35, w_face=0.10, w_size=0.05, w_expo=0.25),
@@ -174,7 +174,7 @@ PURPOSE_PRESETS: Dict[str, PurposePreset] = {
         hard_reject_rules=["multiple_subjects", "body_not_visible"],
     ),
     "pose": PurposePreset(
-        id="pose", label="포즈",
+        id="pose", label="Pose",
         eval_user=prompts.EVAL_USER_POSE,
         coerce_fn=prompts._coerce_pose,
         quality_weights=QualityWeights(w_res=0.25, w_global=0.40, w_face=0.0, w_size=0.0, w_expo=0.35),
@@ -183,7 +183,7 @@ PURPOSE_PRESETS: Dict[str, PurposePreset] = {
         hard_reject_rules=["multiple_subjects", "pose_not_visible"],
     ),
     "outfit": PurposePreset(
-        id="outfit", label="의상 / 아웃핏",
+        id="outfit", label="Outfit / Clothing",
         eval_user=prompts.EVAL_USER_OUTFIT,
         coerce_fn=prompts._coerce_outfit,
         quality_weights=QualityWeights(w_res=0.25, w_global=0.45, w_face=0.0, w_size=0.0, w_expo=0.30),
@@ -192,7 +192,7 @@ PURPOSE_PRESETS: Dict[str, PurposePreset] = {
         hard_reject_rules=["multiple_subjects", "garment_not_visible", "garment_blurry"],
     ),
     "style": PurposePreset(
-        id="style", label="아트 스타일",
+        id="style", label="Art style",
         eval_user=prompts.EVAL_USER_STYLE,
         coerce_fn=prompts._coerce_style,
         quality_weights=QualityWeights(w_res=0.30, w_global=0.30, w_face=0.0, w_size=0.0, w_expo=0.40),
