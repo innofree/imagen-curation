@@ -125,11 +125,14 @@ def _soft_face_threshold(records: List[Dict[str, Any]], cfg: CoverageConfig) -> 
 
 
 def _requirement_count(req, survivors: List[Dict[str, Any]]) -> int:
-    """Evaluate one CoverageRequirement over the survivor vl dicts."""
+    """Evaluate one CoverageRequirement over the survivor vl dicts.
+
+    For kind=="distinct", a missing field falls back to req.field_default (as
+    the original view_counts Counter defaulted a missing view_angle to "front"),
+    keeping distinct counts consistent with the *_counts stats on records whose
+    vl omits the field (e.g. --no-vl runs)."""
     if req.kind == "distinct":
-        vals = {r["vl"].get(req.field) for r in survivors}
-        vals.discard(None)
-        return len(vals)
+        return len({r["vl"].get(req.field, req.field_default) for r in survivors})
     return sum(1 for r in survivors if req.predicate(r["vl"]))
 
 

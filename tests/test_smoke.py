@@ -163,6 +163,23 @@ def test_analyze_coverage_face_stats_key_order():
     assert cov["purpose"] == "face"
 
 
+def test_distinct_views_consistent_with_view_counts_no_vl():
+    # Records whose vl lacks view_angle (e.g. --no-vl runs set vl={}) must still
+    # count as the default "front" for distinct_views, staying consistent with
+    # view_counts and byte-identical to the pre-purpose behavior.
+    from curation import coverage
+    from curation.config import CoverageConfig
+
+    recs = [{"id": f"x{i}", "quality_score": 0.8, "quality_verdict": "pass",
+             "quality_reasons": [], "face_detected": False, "face_sharpness": 0.0,
+             "uniqueness": 0.5, "is_duplicate": 0, "vl": {}} for i in range(20)]
+    cov = coverage.analyze_coverage(recs, CoverageConfig())
+    s = cov["stats"]
+    # all 20 survive (empty vl -> no positive reject signal) and bucket to front
+    assert s["view_counts"] == {"front": 20}
+    assert s["distinct_views"] == len(s["view_counts"]) == 1
+
+
 def test_outfit_purpose_behaviour():
     from curation import coverage, prompts
     from curation.config import CoverageConfig

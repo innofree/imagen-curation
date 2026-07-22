@@ -49,6 +49,10 @@ class CoverageRequirement:
     kind: str = "count"
     predicate: Optional[Callable[[Dict[str, Any]], bool]] = None
     field: Optional[str] = None
+    # For kind=="distinct": value assumed when vl lacks ``field`` (mirrors the
+    # coverage counters' defaults, e.g. a missing view_angle counts as "front",
+    # so distinct_views stays consistent with view_counts on --no-vl records).
+    field_default: str = "other"
 
 
 # --- purpose preset ---------------------------------------------------------
@@ -94,7 +98,7 @@ FACE_COVERAGE_REQUIREMENTS = [
         predicate=lambda v: v.get("shot_type") == "full_body"),
     CoverageRequirement(
         "distinct_views", "뷰 다양성", "뷰 다양성 부족 ({count}/{min} 방향)",
-        "min_distinct_views", kind="distinct", field="view_angle"),
+        "min_distinct_views", kind="distinct", field="view_angle", field_default="front"),
 ]
 FACE_GAP_CHECK_ORDER = ["front_face", "three_quarter", "profiles", "full_body", "distinct_views"]
 
@@ -116,7 +120,7 @@ FULL_BODY_COVERAGE_REQUIREMENTS = [
         predicate=lambda v: v.get("body_shape_visible") is True),
     CoverageRequirement(
         "distinct_views", "뷰 다양성", "뷰 다양성 부족 ({count}/{min} 방향)",
-        "min_distinct_views", kind="distinct", field="view_angle"),
+        "min_distinct_views", kind="distinct", field="view_angle", field_default="front"),
 ]
 
 POSE_COVERAGE_REQUIREMENTS = [
