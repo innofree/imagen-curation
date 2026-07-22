@@ -37,6 +37,7 @@ ensure_hf_home_env()
 from curation.config import CurationConfig, IMAGE_EXTS  # noqa: E402
 from curation import coverage as coverage_mod  # noqa: E402
 from curation import embed_dedup, report  # noqa: E402
+from curation import purposes  # noqa: E402
 from curation.db import CurationDB  # noqa: E402
 from curation.quality import QualityAnalyzer, read_bgr  # noqa: E402
 
@@ -78,7 +79,9 @@ def run_analyze(src: str, cfg: CurationConfig, db: CurationDB, job_id: str,
     db.update_job(job_id, status="analyzing", total_steps=len(files), step=0,
                   info="analyzing images")
 
-    qa = QualityAnalyzer(cfg.quality)
+    preset = purposes.resolve_preset(cfg.purpose)
+    log(f"[analyze] purpose={preset.id} ({preset.label})")
+    qa = QualityAnalyzer(cfg.quality, weights=preset.quality_weights)
     thumbs_dir = os.path.join(out_dir, "thumbs")
     os.makedirs(thumbs_dir, exist_ok=True)
 
@@ -159,7 +162,7 @@ def run_analyze(src: str, cfg: CurationConfig, db: CurationDB, job_id: str,
     cov = coverage_mod.analyze_coverage(
         [{**r, "quality_verdict": r["quality_verdict"],
           "quality_reasons": r["quality_reasons"]} for r in records],
-        cfg.coverage, target=target,
+        cfg.coverage, target=target, purpose=cfg.purpose,
     )
     decided = {r["id"]: r for r in cov["records"]}
     for rec in records:
@@ -176,6 +179,7 @@ def run_analyze(src: str, cfg: CurationConfig, db: CurationDB, job_id: str,
     summary = {
         "source_folder": src, "verdict": cov["verdict"], "gaps": cov["gaps"],
         "cap": cov["cap"], "stats": cov["stats"], "coverage_table": cov["coverage_table"],
+        "purpose": cov["purpose"], "coverage_display": cov["coverage_display"],
     }
     report.write_json(out_dir, {"summary": summary, "records": records})
     md = report.write_markdown(out_dir, summary, records)
@@ -296,6 +300,16 @@ def build_config(job: Optional[Dict[str, Any]], args) -> CurationConfig:
         overrides["quantize"] = True
     if args.low_vram:
         overrides["low_vram"] = True
+    if getattr(args, "purpose", None):
+        overrides["purpose"] = args.purpose
+    # Apply the resolved purpose's coverage defaults UNDER any per-job coverage
+    # overrides (user params win). Empty for the 5 base purposes; used by future
+    # sub-presets that ship their own thresholds.
+    preset = purposes.resolve_preset(overrides.get("purpose"))
+    if preset.default_coverage_overrides:
+        merged = dict(preset.default_coverage_overrides)
+        merged.update(overrides.get("coverage") or {})
+        overrides["coverage"] = merged
     return CurationConfig.from_overrides(overrides)
 
 
@@ -307,6 +321,8 @@ def main():
     ap.add_argument("--db", default=None, help="SQLite path (default: <out>/curation.db)")
     ap.add_argument("--out", default=None, help="report/thumbnail output dir")
     ap.add_argument("--model", default=None)
+    ap.add_argument("--purpose", choices=list(purposes.PURPOSE_PRESETS), default=None,
+                    help="training purpose preset (default: face == identity LoRA)")
     ap.add_argument("--device", default=None)
     ap.add_argument("--target", type=int, default=None, help="target kept image count")
     ap.add_argument("--dry-run", action="store_true")

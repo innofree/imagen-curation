@@ -44,6 +44,27 @@ KNOWN_ISSUES = [
     "extreme_pose",
     "low_quality",
 ]
+# Purpose-specific taxonomies (used by the corresponding VL prompt + coerce +
+# coverage buckets in purposes.py). The default "face" purpose uses only
+# VIEW_ANGLES / SHOT_TYPES above and ignores these.
+GARMENT_TYPES = [            # outfit purpose: coarse garment category
+    "dress",
+    "top",
+    "bottom",
+    "outerwear",
+    "swimwear",
+    "full_outfit",
+    "other",
+]
+POSE_CATEGORIES = [          # pose purpose: coarse body-pose category
+    "standing",
+    "sitting",
+    "walking",
+    "lying",
+    "action",
+    "kneeling",
+    "other",
+]
 
 
 @dataclass
@@ -119,10 +140,28 @@ class CoverageConfig:
     soft_face_reject: bool = True
     soft_face_floor: float = 200.0
     soft_face_rel_ratio: float = 0.45
+    # --- Aggregate minimums for non-face purposes ------------------------
+    # These are consumed only by the corresponding purpose presets (see
+    # purposes.py); the default "face" purpose never reads them. Kept here so
+    # the web UI can override any of them via the same coverage params JSON.
+    min_body_visible: int = 8         # full_body: body-shape-visible images
+    min_full_body_shots: int = 6      # full_body: full_body shot_type images
+    min_pose_categories: int = 5      # pose: distinct pose_category labels
+    min_pose_visible: int = 8         # pose: images with a clearly-visible pose
+    min_garment_types: int = 3        # outfit: distinct garment_type labels
+    min_garment_visible_shots: int = 8  # outfit: images with the garment visible
+    min_style_consistent: int = 10    # style: style-consistent images
+    min_style_variety: int = 4        # style: distinct shot_type labels (variety)
 
 
 @dataclass
 class CurationConfig:
+    # Training purpose this dataset is being curated for. Resolved against
+    # purposes.PURPOSE_PRESETS by the pipeline (quality weights, VL prompt,
+    # coverage buckets, hard-reject rules). "face" == the original
+    # identity-LoRA behavior; kept as a bare string here (not an import) so
+    # config.py has no dependency on purposes.py.
+    purpose: str = "face"
     model_name_or_path: str = DEFAULT_VL_MODEL
     device: str = "cuda:0"
     dtype: str = "bf16"

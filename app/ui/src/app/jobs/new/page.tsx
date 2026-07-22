@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import { useLocale } from "@/components/LocaleProvider";
+import { PURPOSE_OPTIONS, DEFAULT_PURPOSE } from "@/lib/purposes";
 
 // Recommended VL evaluators. "" = use the server-configured default model.
 // "__custom__" reveals a free-text field for any HF repo id or local path.
@@ -23,6 +24,7 @@ export default function NewJob() {
   const [defaultModel, setDefaultModel] = useState("");
   const [form, setForm] = useState<any>({
     source_folder: "",
+    purpose: DEFAULT_PURPOSE,
     mode: "auto",
     recaption: true,
     do_delete: false,
@@ -97,6 +99,15 @@ export default function NewJob() {
                   </option>
                 );
               })}
+            </select>
+          </Row>
+          <Row label={t("new.purpose")}>
+            <select className="input" value={form.purpose} onChange={(e) => set("purpose", e.target.value)}>
+              {PURPOSE_OPTIONS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {t(`purpose.${p.value}`)} — {t(`purpose.${p.value}_desc`)}
+                </option>
+              ))}
             </select>
           </Row>
           <Row label={t("new.eval_model")}>
