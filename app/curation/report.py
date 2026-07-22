@@ -54,8 +54,12 @@ def write_markdown(out_dir: str, summary: Dict[str, Any], records: List[Dict]) -
     lines.append(f"- 과다 버킷 리젝트: **{s['n_overflow_reject']}** 장 (버킷 상한 {summary['cap']})")
     lines.append(f"- **최종 유지: {s['n_final_keep']} 장**")
     lines.append("")
-    lines.append(f"- 정면 얼굴: {s['front_face']} · 3/4: {s['three_quarter']} · "
-                 f"프로파일: {s['profiles']} · 전신: {s['full_body']} · 뷰 다양성: {s['distinct_views']}")
+    if summary.get("purpose", "face") == "face":
+        lines.append(f"- 정면 얼굴: {s['front_face']} · 3/4: {s['three_quarter']} · "
+                     f"프로파일: {s['profiles']} · 전신: {s['full_body']} · 뷰 다양성: {s['distinct_views']}")
+    else:
+        disp = summary.get("coverage_display", [])
+        lines.append("- " + " · ".join(f"{d['label']}: {d['count']}" for d in disp))
     lines.append("")
     lines.append("## 뷰 × 샷 커버리지")
     lines.append("| 버킷 (view\\|shot) | 전체 | 유지 |")
@@ -126,11 +130,16 @@ def write_gallery(out_dir: str, summary: Dict[str, Any], records: List[Dict]) ->
     .summary{background:#1b1b1b;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:16px}
     """
     verdict = summary["verdict"]
+    if summary.get("purpose", "face") == "face":
+        cov_line = (f"정면 {s['front_face']} · 3/4 {s['three_quarter']} · "
+                    f"프로파일 {s['profiles']} · 전신 {s['full_body']}")
+    else:
+        cov_line = " · ".join(f"{html.escape(str(d['label']))} {d['count']}"
+                              for d in summary.get("coverage_display", []))
     header = (
         f"<div class='summary'><b>충분성: {verdict}</b> · 입력 {s['n_input']} · "
         f"유지 {s['n_final_keep']} · 리젝트 {s['n_input']-s['n_final_keep']} · "
-        f"cap {summary['cap']}<br>정면 {s['front_face']} · 3/4 {s['three_quarter']} · "
-        f"프로파일 {s['profiles']} · 전신 {s['full_body']}"
+        f"cap {summary['cap']}<br>{cov_line}"
         + ("<br>gaps: " + html.escape("; ".join(summary["gaps"])) if summary.get("gaps") else "")
         + "</div>"
     )

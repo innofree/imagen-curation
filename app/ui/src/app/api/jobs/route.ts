@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import path from "path";
 import { prisma } from "@/lib/prisma";
 import { DATASETS_DIR } from "@/lib/paths";
+import { PURPOSE_VALUES } from "@/lib/purposes";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ export async function POST(req: NextRequest) {
   if (!source) {
     return NextResponse.json({ error: "source_folder required" }, { status: 400 });
   }
+  // purpose is a closed enum that drives materially different Python logic; a
+  // typo reaching the worker is a hard-to-debug silent failure, so reject early.
+  if (body.purpose && !PURPOSE_VALUES.has(body.purpose)) {
+    return NextResponse.json({ error: `invalid purpose: ${body.purpose}` }, { status: 400 });
+  }
   // Resolve a bare dataset name against datasets/, or accept an absolute path.
   const sourceFolder = path.isAbsolute(source)
     ? source
@@ -29,6 +35,7 @@ export async function POST(req: NextRequest) {
   const params: any = {
     auto_free_gpu: body.auto_free_gpu !== false,
     model_name_or_path: body.model || undefined,
+    purpose: body.purpose || undefined,
     quality: body.quality || undefined,
     dedup: body.dedup || undefined,
     coverage: body.coverage || undefined,

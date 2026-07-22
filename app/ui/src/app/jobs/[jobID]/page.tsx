@@ -6,6 +6,7 @@ import TopBar from "@/components/TopBar";
 import StatusBadge from "@/components/StatusBadge";
 import { Trash2, Terminal, ChevronRight } from "lucide-react";
 import { useLocale } from "@/components/LocaleProvider";
+import { DEFAULT_PURPOSE, statTilesFor } from "@/lib/purposes";
 
 const VERDICT_KEY: Record<string, string> = {
   sufficient: "job.verdict_sufficient", marginal: "job.verdict_marginal", insufficient: "job.verdict_insufficient",
@@ -47,9 +48,15 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
 
   if (!job) return <div className="p-6 text-neutral-500">{t("job.loading")}</div>;
   const verdict = job.verdict ? JSON.parse(job.verdict) : null;
+  let jobParams: any = {};
+  try { jobParams = job.params ? JSON.parse(job.params) : {}; } catch { jobParams = {}; }
   const active = ["running", "analyzing", "applying", "queued", "apply_queued"].includes(job.status);
   const canApply = ["review", "analyzed"].includes(job.status);
   const s = verdict?.stats;
+  // purpose that actually ran (verdict) > requested (params) > default
+  const purpose = verdict?.purpose || jobParams.purpose || DEFAULT_PURPOSE;
+  const tiles = statTilesFor(purpose);
+  const bucketIsViewShot = purpose === "face" || purpose === "full_body";
 
   const stop = () => fetch(`/api/jobs/${jobID}/stop`, { method: "POST" });
   const apply = async () => {
@@ -68,6 +75,7 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
     <>
       <TopBar title={job.name}>
         <StatusBadge status={job.status} />
+        <span className="badge" title={t("job.purpose_title")}>{t(`purpose.${purpose}`)}</span>
         {active && <button className="btn btn-danger" onClick={stop}>{t("job.stop")}</button>}
         {(job.status === "review" || job.status === "analyzed" || job.status === "completed") && (
           <Link className="btn" href={`/review/${jobID}`}>{t("job.gallery_review")}</Link>
@@ -118,20 +126,18 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
               )}
               {s && (
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <Stat label={t("job.stat_input")} v={s.n_input} href={`/review/${jobID}?filter=all`} />
-                  <Stat label={t("job.stat_final_keep")} v={s.n_final_keep} accent href={`/review/${jobID}?filter=keep`} />
-                  <Stat label={t("job.stat_hard_reject")} v={s.n_hard_reject} href={`/review/${jobID}?filter=hard`} />
-                  <Stat label={t("job.stat_overflow_reject")} v={s.n_overflow_reject} href={`/review/${jobID}?filter=overflow`} />
-                  <Stat label={t("job.stat_front_face")} v={s.front_face} />
-                  <Stat label="3/4" v={s.three_quarter} />
-                  <Stat label={t("job.stat_profiles")} v={s.profiles} />
-                  <Stat label={t("job.stat_full_body")} v={s.full_body} />
+                  {tiles.map((tile) =>
+                    s[tile.key] !== undefined ? (
+                      <Stat key={tile.key} label={t(tile.labelKey)} v={s[tile.key]} accent={tile.accent}
+                        href={tile.filter ? `/review/${jobID}?filter=${tile.filter}` : undefined} />
+                    ) : null
+                  )}
                 </div>
               )}
             </div>
 
             <div className="card p-4">
-              <h3 className="text-xs uppercase text-neutral-500 mb-2">{t("job.coverage_title")}</h3>
+              <h3 className="text-xs uppercase text-neutral-500 mb-2">{t(bucketIsViewShot ? "job.coverage_title" : "job.coverage_title_bucket")}</h3>
               <table className="text-sm w-full max-w-md">
                 <thead className="text-neutral-500 text-xs">
                   <tr><th className="text-left py-1">{t("job.col_bucket")}</th><th className="text-right">{t("job.col_total")}</th><th className="text-right">{t("job.col_kept")}</th></tr>

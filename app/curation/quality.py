@@ -28,6 +28,21 @@ _MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
 _YUNET_PATH = os.path.join(_MODELS_DIR, "face_detection_yunet_2023mar.onnx")
 
 
+@dataclass(frozen=True)
+class QualityWeights:
+    """Weights combining the per-image quality signals into a 0..1 score.
+
+    Defaults reproduce the original identity/face-LoRA weighting exactly (face
+    sharpness dominant). Non-face purposes supply their own weights via a
+    ``PurposePreset`` (e.g. outfit/pose/style set ``w_face``/``w_size`` to 0 so
+    body/garment sharpness and exposure drive the score instead)."""
+    w_res: float = 0.18
+    w_global: float = 0.22
+    w_face: float = 0.32
+    w_size: float = 0.13
+    w_expo: float = 0.15
+
+
 @dataclass
 class QualityResult:
     width: int
@@ -52,8 +67,10 @@ class QualityResult:
 
 
 class QualityAnalyzer:
-    def __init__(self, thresholds: QualityThresholds | None = None):
+    def __init__(self, thresholds: QualityThresholds | None = None,
+                 weights: "QualityWeights | None" = None):
         self.t = thresholds or QualityThresholds()
+        self.weights = weights or QualityWeights()
         self._yunet = None
         self._haar = None
         self._detector_kind = None
@@ -263,10 +280,12 @@ class QualityAnalyzer:
             # No usable face: neutral (body-only shots are still useful).
             s_face, s_size = 0.6, 0.6
         s_expo = 1.0 - ramp(clip_frac, t.clip_frac_warn, 0.8)
-        # Weighted: face sharpness dominates for identity training.
+        # Weighted combine. Default weights make face sharpness dominant (identity
+        # training); purpose presets rebalance them (e.g. face weight -> 0).
+        w = self.weights
         score = (
-            0.18 * s_res + 0.22 * s_global + 0.32 * s_face
-            + 0.13 * s_size + 0.15 * s_expo
+            w.w_res * s_res + w.w_global * s_global + w.w_face * s_face
+            + w.w_size * s_size + w.w_expo * s_expo
         )
         return float(np.clip(score, 0.0, 1.0))
 

@@ -37,6 +37,10 @@ export function startJob(job: any, mode: "analyze" | "auto" | "apply") {
   if (p.auto_free_gpu === false) args.push("--no-free-gpu");
   // Per-job model pin (New Curation) or the configured default model.
   args.push("--model", p.model_name_or_path || DEFAULT_MODEL);
+  // Training purpose (face/full_body/pose/outfit/style). Always passed
+  // explicitly so the worker log's argv is self-documenting; falls back to
+  // "face" (identity LoRA) for older jobs with no purpose in params.
+  args.push("--purpose", p.purpose || "face");
 
   fs.mkdirSync(LOG_DIR, { recursive: true });
   const logPath = path.join(LOG_DIR, `curate-${job.id}.log`);

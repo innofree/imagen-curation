@@ -16,6 +16,7 @@ from PIL import Image
 
 from .config import CurationConfig
 from . import prompts
+from . import purposes
 
 
 def _flush():
@@ -128,22 +129,28 @@ class VLEvaluator:
     def evaluate(self, image: Image.Image) -> Dict[str, Any]:
         """Return the normalized structured evaluation dict for one image.
 
-        Retries once with a stricter nudge if JSON parsing fails; on repeated
-        failure returns a conservative default flagged with parse_failed.
+        The prompt and JSON schema depend on the training purpose (default
+        "face" == original identity prompt). Retries once with a stricter nudge
+        if JSON parsing fails; on repeated failure returns a conservative
+        default flagged with parse_failed.
         """
-        raw = self._generate(image, prompts.EVAL_USER, prompts.EVAL_SYSTEM,
-                             self.cfg.vl_max_new_tokens)
-        parsed = prompts.parse_eval(raw)
+        preset = purposes.resolve_preset(self.cfg.purpose)
+        system = preset.eval_system or prompts.EVAL_SYSTEM
+        user = preset.eval_user
+        coerce_fn = preset.coerce_fn
+
+        raw = self._generate(image, user, system, self.cfg.vl_max_new_tokens)
+        parsed = prompts.parse_eval(raw, coerce_fn)
         if parsed is None:
             raw2 = self._generate(
                 image,
-                prompts.EVAL_USER + "\n\nIMPORTANT: output ONLY the JSON object.",
-                prompts.EVAL_SYSTEM, self.cfg.vl_max_new_tokens,
+                user + "\n\nIMPORTANT: output ONLY the JSON object.",
+                system, self.cfg.vl_max_new_tokens,
             )
-            parsed = prompts.parse_eval(raw2)
+            parsed = prompts.parse_eval(raw2, coerce_fn)
         if parsed is None:
             self.log("[vl] JSON parse failed; using neutral default")
-            parsed = prompts.parse_eval("{}")
+            parsed = prompts.parse_eval("{}", coerce_fn)
             parsed["parse_failed"] = True
             parsed["reason"] = "model output could not be parsed"
         return parsed

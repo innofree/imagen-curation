@@ -64,6 +64,7 @@ export const messages: Record<string, Message> = {
   "new.model_qwen3vl_8b": { ko: "Qwen3-VL 8B Instruct (공식)", en: "Qwen3-VL 8B Instruct (official)" },
   "new.model_qwen3vl_8b_abliterated": { ko: "Qwen3-VL 8B abliterated (비검열, 기본)", en: "Qwen3-VL 8B abliterated (uncensored, default)" },
   "new.per_bucket_cap": { ko: "버킷(뷰×샷)당 최대 장수", en: "Max images per bucket (view × shot)" },
+  "new.purpose": { ko: "학습 목적 (Purpose)", en: "Training purpose" },
   "new.per_bucket_cap_placeholder": { ko: "비우면 자동 (예: 5)", en: "Leave empty for auto (e.g. 5)" },
   "new.recaption": { ko: "비검열 캡션 재생성", en: "Uncensored caption regeneration" },
   "new.submit": { ko: "작업 시작", en: "Start job" },
@@ -83,6 +84,8 @@ export const messages: Record<string, Message> = {
   "job.col_total": { ko: "전체", en: "Total" },
   "job.confirm_delete": { ko: "작업을 삭제할까요?", en: "Delete this job?" },
   "job.coverage_title": { ko: "뷰 × 샷 커버리지", en: "View × shot coverage" },
+  "job.coverage_title_bucket": { ko: "버킷 커버리지", en: "Bucket coverage" },
+  "job.purpose_title": { ko: "학습 목적", en: "Training purpose" },
   "job.dataset_sufficiency": { ko: "데이터셋 충분성", en: "Dataset sufficiency" },
   "job.delete": { ko: "삭제", en: "Delete" },
   "job.delete_aria": { ko: "작업 삭제", en: "Delete job" },
@@ -97,6 +100,16 @@ export const messages: Record<string, Message> = {
   "job.stat_link_title": { ko: "이 목록을 갤러리에서 보기", en: "View this set in the gallery" },
   "job.stat_overflow_reject": { ko: "과다버킷 리젝트", en: "Overflow rejects" },
   "job.stat_profiles": { ko: "프로파일", en: "Profile" },
+  "job.stat_three_quarter": { ko: "3/4", en: "3/4" },
+  "job.stat_full_body_shots": { ko: "전신 컷", en: "Full-body shots" },
+  "job.stat_body_visible": { ko: "체형 노출", en: "Body visible" },
+  "job.stat_distinct_views": { ko: "뷰 다양성", en: "View variety" },
+  "job.stat_pose_categories": { ko: "포즈 종류", en: "Pose types" },
+  "job.stat_pose_visible": { ko: "포즈 선명", en: "Pose clear" },
+  "job.stat_garment_types": { ko: "의상 종류", en: "Garment types" },
+  "job.stat_garment_visible": { ko: "의상 노출", en: "Garment visible" },
+  "job.stat_style_consistent": { ko: "스타일 일관", en: "Style consistent" },
+  "job.stat_style_variety": { ko: "구도 다양성", en: "Composition variety" },
   "job.stop": { ko: "중지", en: "Stop" },
   "job.verdict_insufficient": { ko: "❌ 부족", en: "❌ Insufficient" },
   "job.verdict_marginal": { ko: "⚠️ 보통", en: "⚠️ Marginal" },
@@ -181,6 +194,18 @@ export const messages: Record<string, Message> = {
 
   // --- imgf ---
   "imgf.missing": { ko: "이미지 없음 / 이동됨", en: "No image / moved" },
+
+  // --- purpose (training purpose selector + badge) ---
+  "purpose.face": { ko: "얼굴 (기본)", en: "Face (default)" },
+  "purpose.face_desc": { ko: "정체성(얼굴) LoRA — 기존 동작과 동일", en: "Identity (face) LoRA — same as before" },
+  "purpose.full_body": { ko: "전신", en: "Full body" },
+  "purpose.full_body_desc": { ko: "전신 비율/체형 LoRA", en: "Full-body proportion / physique LoRA" },
+  "purpose.pose": { ko: "포즈", en: "Pose" },
+  "purpose.pose_desc": { ko: "포즈 다양성 LoRA", en: "Pose-variety LoRA" },
+  "purpose.outfit": { ko: "의상", en: "Outfit" },
+  "purpose.outfit_desc": { ko: "의상/아웃핏 LoRA", en: "Clothing / outfit LoRA" },
+  "purpose.style": { ko: "스타일", en: "Style" },
+  "purpose.style_desc": { ko: "아트 스타일 LoRA", en: "Art-style LoRA" },
 
   // --- font ---
   "font.noto": { ko: "Noto Sans KR (Google, 한/영 기본)", en: "Noto Sans KR (Google, KR/EN default)" },
