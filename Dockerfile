@@ -2,15 +2,23 @@
 # The UI's worker spawns the Python pipeline in-container, so both runtimes are
 # present. The VL model is NOT baked in — it is fetched into the mounted HF
 # cache (shared with ComfyUI/ai-toolkit) at first run.
-FROM nvidia/cuda:12.8.0-cudnn-runtime-ubuntu22.04
+# -devel base (not -runtime): ships nvcc + CUDA headers so optimum-quanto can
+# JIT-compile its fp8 marlin kernels at model-load time on Blackwell (sm_120).
+# A -runtime image lacks nvcc/headers, so fp8 aborts at load; the pipeline also
+# falls back to bf16 in that case (see vl_evaluator._build), but this image is
+# meant to actually support the fp8 coexist path.
+FROM nvidia/cuda:12.8.0-cudnn-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# System deps: python, node 22, git, and OpenCV runtime libs (libGL/glib).
+# System deps: python (+headers), node 22, git, OpenCV runtime libs (libGL/glib),
+# and a host C/C++ toolchain (build-essential) required by nvcc for the quanto
+# fp8 kernel JIT build.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-pip git curl ca-certificates libgl1 libglib2.0-0 \
+        python3 python3-pip python3-dev git curl ca-certificates libgl1 libglib2.0-0 \
+        build-essential \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*

@@ -57,6 +57,27 @@ class VLEvaluator:
         self.torch_dtype = _DTYPES.get(config.dtype, torch.bfloat16)
 
     def load(self):
+        """Load the VL model, quantizing to fp8 when requested.
+
+        fp8 relies on optimum-quanto's marlin kernels, which JIT-compile at load
+        time and therefore need a CUDA/C++ toolchain (nvcc + c++) in the image.
+        If that build fails (e.g. a runtime-only image without a compiler), we
+        log the reason and fall back to bf16 so the job still runs instead of
+        the worker crashing mid-pipeline."""
+        quantize = bool(self.cfg.quantize)
+        try:
+            self._build(quantize)
+        except Exception as e:  # noqa: BLE001
+            if not quantize:
+                raise
+            self.log(f"[vl] fp8 quantization unavailable ({type(e).__name__}: {e}); "
+                     "falling back to bf16")
+            self.model = None
+            self.processor = None
+            _flush()
+            self._build(False)
+
+    def _build(self, quantize: bool):
         from transformers import (
             AutoProcessor,
             Qwen3VLForConditionalGeneration,
@@ -64,7 +85,7 @@ class VLEvaluator:
         )
 
         path = self.cfg.model_name_or_path
-        self.log(f"[vl] loading {path}")
+        self.log(f"[vl] loading {path}{' (fp8)' if quantize else ''}")
         ModelClass = (
             Qwen3VLMoeForConditionalGeneration if "B-A" in path
             else Qwen3VLForConditionalGeneration
@@ -78,10 +99,10 @@ class VLEvaluator:
         # Move to GPU first only when NOT low_vram and NOT quantizing (needs the
         # full bf16 model to fit). Otherwise quantize on CPU, then move the
         # smaller quantized model to the GPU (fits alongside other processes).
-        move_before = not self.cfg.low_vram and not self.cfg.quantize
+        move_before = not self.cfg.low_vram and not quantize
         if move_before:
             self.model.to(self.device)
-        if self.cfg.quantize:
+        if quantize:
             from optimum.quanto import quantize as quanto_quantize, freeze, qfloat8, qint8
             qmap = {"float8": qfloat8, "int8": qint8}
             self.log(f"[vl] quantizing weights -> {self.cfg.qtype}")
@@ -90,7 +111,7 @@ class VLEvaluator:
             _flush()
         self.processor = AutoProcessor.from_pretrained(path)
         if not move_before:
-            self.model.to(self.device)
+            self.model.to(self.device)  # marlin fp8 repack (JIT-compiled) happens here
         self.model.eval()
         # greedy decoding: drop sampling params so transformers doesn't warn
         for attr in ("temperature", "top_p", "top_k"):
