@@ -27,8 +27,8 @@ docker compose up --build # → http://<host>:8680
 
 **예 — comfy-models(infra-poc) 조각 레이아웃**
 ```
-DATASETS_DIR=/home/interbus/workspace/ai-toolkit/datasets   # ai-toolkit 데이터셋(공유·RW)
-HF_HOME=/home/interbus/.cache/huggingface                    # 기존 HF 캐시(42G, 모델 재다운로드 방지)
+DATASETS_DIR=/home/youruser/workspace/ai-toolkit/datasets   # ai-toolkit 데이터셋(공유·RW)
+HF_HOME=/home/youruser/.cache/huggingface                    # 기존 HF 캐시(42G, 모델 재다운로드 방지)
 ```
 - **datasets**를 ai-toolkit과 같은 폴더로 바인드 → 데이터셋 공유(정리 결과가 학습셋에 바로 반영).
 - **HF 캐시**를 기존 캐시로 바인드 → VL 모델 공유(없으면 최초 1회만 다운로드). 참고: `/data/models`는 ComfyUI 디퓨전 모델 트리라 큐레이션엔 불필요(공유 대상은 HF 캐시의 VL 모델).

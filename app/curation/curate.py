@@ -85,9 +85,17 @@ def run_analyze(src: str, cfg: CurationConfig, db: CurationDB, job_id: str,
     thumbs_dir = os.path.join(out_dir, "thumbs")
     os.makedirs(thumbs_dir, exist_ok=True)
 
+    # Face-identity consistency (single-person purposes only): embed each face
+    # so a post-loop stage can reject photos of a *different* person.
+    identity_analyzer = None
+    if preset.identity_check and cfg.identity.enabled:
+        from curation.identity import IdentityAnalyzer
+        identity_analyzer = IdentityAnalyzer(cfg.identity, log=log)
+
     records: List[Dict[str, Any]] = []
     dedup_items: List[Dict[str, Any]] = []
     qscores: List[float] = []
+    id_embeds: List[Any] = []  # lockstep with records; None where no face/off
 
     for i, path in enumerate(files):
         if db.should_stop(job_id):
@@ -138,6 +146,9 @@ def run_analyze(src: str, cfg: CurationConfig, db: CurationDB, job_id: str,
             records.append(rec)
             dedup_items.append({"path": path, "image": vl_img})
             qscores.append(q.quality_score)
+            # identity embedding on the quality-processing image (has a face when
+            # detectable); appended in lockstep so indices match `records`.
+            id_embeds.append(identity_analyzer.embed(bgr) if identity_analyzer else None)
         except Exception as e:  # noqa: BLE001
             log(f"[analyze] skipping {os.path.basename(path)}: {e}")
         db.set_progress(job_id, i + 1, len(files), f"analyzed {i+1}/{len(files)}")
@@ -156,6 +167,24 @@ def run_analyze(src: str, cfg: CurationConfig, db: CurationDB, job_id: str,
         rec["uniqueness"] = dd.uniqueness[idx]
         rec["cluster_id"] = dd.cluster_id[idx]
         rec["is_duplicate"] = int(dd.is_duplicate[idx])
+
+    # --- face-identity consistency (needs the whole set) -----------------
+    # Off-identity images are turned into hard rejects by coverage.py via the
+    # identity_outlier flag stashed in each record's vl dict (persists as JSON,
+    # no schema change). Skipped safely (nothing flagged) when there are too few
+    # faces or no clear majority identity.
+    if identity_analyzer is not None:
+        log("[analyze] face-identity consistency")
+        outliers, id_sims, id_info = identity_analyzer.analyze_consistency(id_embeds)
+        if id_info.get("checked"):
+            log(f"[analyze] dominant identity: {id_info['dominant_support']}/"
+                f"{id_info['n_faces']} faces (>= {id_info['threshold']}); "
+                f"{id_info['n_outliers']} off-identity")
+        else:
+            log(f"[analyze] identity check skipped: {id_info.get('reason', 'n/a')}")
+        for idx, rec in enumerate(records):
+            rec["vl"]["identity_sim"] = id_sims[idx]
+            rec["vl"]["identity_outlier"] = bool(outliers[idx])
 
     # --- coverage + auto decisions ---------------------------------------
     log("[analyze] coverage + selection")

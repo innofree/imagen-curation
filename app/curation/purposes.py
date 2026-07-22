@@ -66,6 +66,11 @@ class PurposePreset:
     bucket_fn: Callable[[Dict[str, Any]], str]
     coverage_requirements: List[CoverageRequirement]
     hard_reject_rules: List[str]
+    # Run the cross-image face-identity consistency stage (identity.py) for this
+    # purpose. True only for single-person purposes (face, full_body) whose
+    # dataset should depict one identity; the "off_identity" hard-reject rule
+    # must also be listed in hard_reject_rules for outliers to be rejected.
+    identity_check: bool = False
     # None -> shared default EVAL_SYSTEM (all current presets reuse it).
     eval_system: Optional[str] = None
     # Order in which gaps are reported (names). None -> requirement order.
@@ -162,7 +167,8 @@ PURPOSE_PRESETS: Dict[str, PurposePreset] = {
         bucket_fn=_view_shot_bucket,
         coverage_requirements=FACE_COVERAGE_REQUIREMENTS,
         gap_check_order=FACE_GAP_CHECK_ORDER,
-        hard_reject_rules=["multiple_subjects", "face_blurry", "soft_face"],
+        hard_reject_rules=["multiple_subjects", "face_blurry", "soft_face", "off_identity"],
+        identity_check=True,
     ),
     "full_body": PurposePreset(
         id="full_body", label="Full body",
@@ -171,7 +177,8 @@ PURPOSE_PRESETS: Dict[str, PurposePreset] = {
         quality_weights=QualityWeights(w_res=0.25, w_global=0.35, w_face=0.10, w_size=0.05, w_expo=0.25),
         bucket_fn=_view_shot_bucket,
         coverage_requirements=FULL_BODY_COVERAGE_REQUIREMENTS,
-        hard_reject_rules=["multiple_subjects", "body_not_visible"],
+        hard_reject_rules=["multiple_subjects", "body_not_visible", "off_identity"],
+        identity_check=True,
     ),
     "pose": PurposePreset(
         id="pose", label="Pose",
