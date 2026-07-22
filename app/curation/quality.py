@@ -28,6 +28,19 @@ _MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
 _YUNET_PATH = os.path.join(_MODELS_DIR, "face_detection_yunet_2023mar.onnx")
 
 
+def ensure_yunet_model() -> str:
+    """Return a local path to the YuNet detector, downloading it once.
+
+    Module-level so other stages (e.g. identity.py's SFace embedder, which pairs
+    a YuNet detection with SFace alignment) can reuse the same cached model."""
+    if os.path.exists(_YUNET_PATH) and os.path.getsize(_YUNET_PATH) > 100_000:
+        return _YUNET_PATH
+    os.makedirs(_MODELS_DIR, exist_ok=True)
+    print(f"[quality] downloading YuNet face detector -> {_YUNET_PATH}")
+    urllib.request.urlretrieve(_YUNET_URL, _YUNET_PATH)
+    return _YUNET_PATH
+
+
 @dataclass(frozen=True)
 class QualityWeights:
     """Weights combining the per-image quality signals into a 0..1 score.
@@ -95,12 +108,7 @@ class QualityAnalyzer:
             self._detector_kind = "haar"
 
     def _ensure_yunet_model(self) -> str:
-        if os.path.exists(_YUNET_PATH) and os.path.getsize(_YUNET_PATH) > 100_000:
-            return _YUNET_PATH
-        os.makedirs(_MODELS_DIR, exist_ok=True)
-        print(f"[quality] downloading YuNet face detector -> {_YUNET_PATH}")
-        urllib.request.urlretrieve(_YUNET_URL, _YUNET_PATH)
-        return _YUNET_PATH
+        return ensure_yunet_model()
 
     # -- core metrics -------------------------------------------------------
     @staticmethod

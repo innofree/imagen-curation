@@ -1,8 +1,8 @@
 # Curation web UI + pipeline. Requires NVIDIA Container Toolkit for GPU.
 #
 # Set host paths via env (shared with ComfyUI/ai-toolkit) then `docker compose up`:
-#   DATASETS_DIR=/home/interbus/workspace/ai-toolkit/datasets \
-#   HF_HOME=/home/interbus/.cache/huggingface \
+#   DATASETS_DIR=/home/youruser/workspace/ai-toolkit/datasets \
+#   HF_HOME=/home/youruser/.cache/huggingface \
 #   docker compose up --build
 # or just `cp .env.example .env` (compose auto-loads it) and `docker compose up --build`.
 services:

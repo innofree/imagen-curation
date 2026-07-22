@@ -111,6 +111,30 @@ class DedupConfig:
 
 
 @dataclass
+class IdentityConfig:
+    """Cross-image face-identity consistency (OpenCV SFace).
+
+    For a single-person identity LoRA every image should depict the SAME person.
+    The per-image quality + VL gates judge each image in isolation, so a sharp,
+    well-composed photo of a *different* person passes and silently contaminates
+    the set. This stage embeds each face (SFace, the recognition companion to the
+    YuNet detector already used in quality.py), finds the dataset's dominant
+    identity, and rejects images whose face does not match it.
+    """
+    enabled: bool = True
+    # SFace cosine-similarity same-person cut. 0.363 is OpenCV's recommended
+    # threshold for FR_COSINE (l2 counterpart is 1.128); above -> same identity.
+    threshold: float = 0.363
+    # Need at least this many face-detected images before judging identity at all
+    # (too few faces -> the "dominant" identity is not trustworthy -> skip).
+    min_faces: int = 5
+    # The dominant-identity cluster must cover at least this fraction of the
+    # face-detected images, otherwise there is no clear majority person and we
+    # skip (rather than risk rejecting half a genuinely diverse-but-single set).
+    min_dominant_fraction: float = 0.5
+
+
+@dataclass
 class CoverageConfig:
     """Per-bucket minimums and balancing targets for an identity LoRA.
 
@@ -174,6 +198,7 @@ class CurationConfig:
     quality: QualityThresholds = field(default_factory=QualityThresholds)
     dedup: DedupConfig = field(default_factory=DedupConfig)
     coverage: CoverageConfig = field(default_factory=CoverageConfig)
+    identity: IdentityConfig = field(default_factory=IdentityConfig)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -192,6 +217,7 @@ class CurationConfig:
             "quality": cfg.quality,
             "dedup": cfg.dedup,
             "coverage": cfg.coverage,
+            "identity": cfg.identity,
         }
         for key, val in overrides.items():
             if key in sub_map and isinstance(val, dict):

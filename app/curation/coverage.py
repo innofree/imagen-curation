@@ -53,6 +53,18 @@ def _rule_soft_face(rec, vl, cfg, thr):
     return None
 
 
+def _rule_off_identity(rec, vl, cfg, thr):
+    # Cross-image identity check (identity.py) flags faces that do not match the
+    # dataset's dominant person. identity_outlier/identity_sim live in the vl
+    # dict; absent (check skipped or non-identity purpose) -> never rejects.
+    if vl.get("identity_outlier"):
+        sim = vl.get("identity_sim")
+        if sim is not None:
+            return f"off-identity (face match {float(sim):.2f})"
+        return "off-identity (different person)"
+    return None
+
+
 def _rule_body_not_visible(rec, vl, cfg, thr):
     if not vl.get("body_shape_visible", True):
         return "body not visible"
@@ -81,6 +93,7 @@ HARD_REJECT_RULES: Dict[str, Callable[[Dict, Dict, CoverageConfig, float], Optio
     "multiple_subjects": _rule_multiple_subjects,
     "face_blurry": _rule_face_blurry,
     "soft_face": _rule_soft_face,
+    "off_identity": _rule_off_identity,
     "body_not_visible": _rule_body_not_visible,
     "pose_not_visible": _rule_pose_not_visible,
     "garment_not_visible": _rule_garment_not_visible,
