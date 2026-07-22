@@ -1,22 +1,19 @@
 "use client";
-import { useEffect, useState } from "react";
 import TopBar from "@/components/TopBar";
 import { HELP } from "@/lib/help";
-import { Locale, LOCALES, getSavedLocale, saveLocale } from "@/lib/i18n";
+import { LOCALES } from "@/lib/i18n";
+import { useLocale } from "@/components/LocaleProvider";
 
 export default function HelpPage() {
-  const [locale, setLocale] = useState<Locale>("ko");
-  useEffect(() => { setLocale(getSavedLocale()); }, []);
-
-  const change = (l: Locale) => { setLocale(l); saveLocale(l); };
+  const { locale, setLocale, t } = useLocale();
   const doc = HELP[locale];
 
   return (
     <>
-      <TopBar title={locale === "ko" ? "도움말" : "Help"}>
+      <TopBar title={t("help.title")}>
         <div className="flex gap-1">
           {LOCALES.map((l) => (
-            <button key={l.value} onClick={() => change(l.value)} aria-pressed={locale === l.value}
+            <button key={l.value} onClick={() => setLocale(l.value)} aria-pressed={locale === l.value}
               className={`btn ${locale === l.value ? "border-blue-500 text-blue-300 bg-blue-600/15" : "text-neutral-400"}`}>{l.label}</button>
           ))}
         </div>
@@ -34,11 +31,7 @@ export default function HelpPage() {
             </div>
           ))}
         </div>
-        <p className="text-xs text-neutral-600 mt-5">
-          {locale === "ko"
-            ? "언어 설정은 저장되며, 추후 앱 전체 다국어로 확장 가능합니다 (curation/README.md 참고)."
-            : "The language choice is saved and can be extended to the whole app later (see curation/README.md)."}
-        </p>
+        <p className="text-xs text-neutral-600 mt-5">{t("help.note")}</p>
       </div>
     </>
   );

@@ -30,6 +30,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ job
     fs.closeSync(fd);
   }
   let log = buf.toString("utf8");
-  if (start > 0) log = "…(앞부분 생략)…\n" + log;
+  if (start > 0) log = "…(earlier output truncated)…\n" + log;
   return NextResponse.json({ log, exists: true, size, truncated: start > 0 });
 }

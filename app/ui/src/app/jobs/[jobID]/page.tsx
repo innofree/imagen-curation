@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import StatusBadge from "@/components/StatusBadge";
 import { Trash2, Terminal, ChevronRight } from "lucide-react";
+import { useLocale } from "@/components/LocaleProvider";
 
-const VERDICT_LABEL: Record<string, string> = {
-  sufficient: "✅ 충분", marginal: "⚠️ 보통", insufficient: "❌ 부족",
+const VERDICT_KEY: Record<string, string> = {
+  sufficient: "job.verdict_sufficient", marginal: "job.verdict_marginal", insufficient: "job.verdict_insufficient",
 };
 
 export default function JobDetail({ params }: { params: Promise<{ jobID: string }> }) {
   const { jobID } = use(params);
+  const { t } = useLocale();
   const router = useRouter();
   const [job, setJob] = useState<any>(null);
   const [showLog, setShowLog] = useState(false);
@@ -30,12 +32,12 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
   useEffect(() => {
     if (!showLog) return;
     const load = () =>
-      fetch(`/api/jobs/${jobID}/log`).then((r) => r.json()).then((d) => setLog(d.log || "(로그 없음)"));
+      fetch(`/api/jobs/${jobID}/log`).then((r) => r.json()).then((d) => setLog(d.log || t("job.no_log")));
     load();
     const active = job && ["running", "analyzing", "applying", "queued", "apply_queued"].includes(job.status);
     if (!active) return;
-    const t = setInterval(load, 2000);
-    return () => clearInterval(t);
+    const timer = setInterval(load, 2000);
+    return () => clearInterval(timer);
   }, [showLog, jobID, job?.status]);
 
   // Keep the log scrolled to the newest line as it streams.
@@ -43,7 +45,7 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
     if (showLog && logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [log, showLog]);
 
-  if (!job) return <div className="p-6 text-neutral-500">로딩...</div>;
+  if (!job) return <div className="p-6 text-neutral-500">{t("job.loading")}</div>;
   const verdict = job.verdict ? JSON.parse(job.verdict) : null;
   const active = ["running", "analyzing", "applying", "queued", "apply_queued"].includes(job.status);
   const canApply = ["review", "analyzed"].includes(job.status);
@@ -57,7 +59,7 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
     });
   };
   const del = async () => {
-    if (!confirm("작업을 삭제할까요?")) return;
+    if (!confirm(t("job.confirm_delete"))) return;
     await fetch(`/api/jobs/${jobID}`, { method: "DELETE" });
     router.push("/jobs");
   };
@@ -66,12 +68,12 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
     <>
       <TopBar title={job.name}>
         <StatusBadge status={job.status} />
-        {active && <button className="btn btn-danger" onClick={stop}>중지</button>}
+        {active && <button className="btn btn-danger" onClick={stop}>{t("job.stop")}</button>}
         {(job.status === "review" || job.status === "analyzed" || job.status === "completed") && (
-          <Link className="btn" href={`/review/${jobID}`}>갤러리 리뷰</Link>
+          <Link className="btn" href={`/review/${jobID}`}>{t("job.gallery_review")}</Link>
         )}
-        {canApply && <button className="btn btn-primary" onClick={apply}>적용</button>}
-        <button className="btn btn-danger" onClick={del} aria-label="작업 삭제"><Trash2 size={14} /> 삭제</button>
+        {canApply && <button className="btn btn-primary" onClick={apply}>{t("job.apply")}</button>}
+        <button className="btn btn-danger" onClick={del} aria-label={t("job.delete_aria")}><Trash2 size={14} /> {t("job.delete")}</button>
       </TopBar>
       <div className="p-5 space-y-5">
         <div className="card p-4 text-sm">
@@ -91,13 +93,13 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
             className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-neutral-300 hover:bg-panel2 rounded-lg"
             onClick={() => setShowLog((s) => !s)} aria-expanded={showLog}>
             <ChevronRight size={15} className={`transition-transform ${showLog ? "rotate-90" : ""}`} />
-            <Terminal size={15} /> 작업 로그
+            <Terminal size={15} /> {t("job.worker_log")}
             {active && <span className="ml-1 text-[11px] text-blue-300">· live</span>}
           </button>
           {showLog && (
             <pre ref={logRef}
               className="mx-4 mb-4 mt-1 max-h-96 overflow-auto rounded-md bg-[#0c0c0e] border border-edge p-3 text-[11px] leading-relaxed text-neutral-300 whitespace-pre-wrap break-all">
-              {log || "로딩..."}
+              {log || t("job.loading")}
             </pre>
           )}
         </div>
@@ -106,8 +108,8 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
           <>
             <div className="card p-4">
               <div className="flex items-center gap-3">
-                <span className="text-lg">{VERDICT_LABEL[verdict.verdict] || verdict.verdict}</span>
-                <span className="text-sm text-neutral-400">데이터셋 충분성</span>
+                <span className="text-lg">{VERDICT_KEY[verdict.verdict] ? t(VERDICT_KEY[verdict.verdict]) : verdict.verdict}</span>
+                <span className="text-sm text-neutral-400">{t("job.dataset_sufficiency")}</span>
               </div>
               {verdict.gaps?.length > 0 && (
                 <ul className="mt-2 text-sm text-amber-300 list-disc pl-5">
@@ -116,23 +118,23 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
               )}
               {s && (
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <Stat label="입력" v={s.n_input} href={`/review/${jobID}?filter=all`} />
-                  <Stat label="최종 유지" v={s.n_final_keep} accent href={`/review/${jobID}?filter=keep`} />
-                  <Stat label="품질/중복 리젝트" v={s.n_hard_reject} href={`/review/${jobID}?filter=hard`} />
-                  <Stat label="과다버킷 리젝트" v={s.n_overflow_reject} href={`/review/${jobID}?filter=overflow`} />
-                  <Stat label="정면 얼굴" v={s.front_face} />
+                  <Stat label={t("job.stat_input")} v={s.n_input} href={`/review/${jobID}?filter=all`} />
+                  <Stat label={t("job.stat_final_keep")} v={s.n_final_keep} accent href={`/review/${jobID}?filter=keep`} />
+                  <Stat label={t("job.stat_hard_reject")} v={s.n_hard_reject} href={`/review/${jobID}?filter=hard`} />
+                  <Stat label={t("job.stat_overflow_reject")} v={s.n_overflow_reject} href={`/review/${jobID}?filter=overflow`} />
+                  <Stat label={t("job.stat_front_face")} v={s.front_face} />
                   <Stat label="3/4" v={s.three_quarter} />
-                  <Stat label="프로파일" v={s.profiles} />
-                  <Stat label="전신" v={s.full_body} />
+                  <Stat label={t("job.stat_profiles")} v={s.profiles} />
+                  <Stat label={t("job.stat_full_body")} v={s.full_body} />
                 </div>
               )}
             </div>
 
             <div className="card p-4">
-              <h3 className="text-xs uppercase text-neutral-500 mb-2">뷰 × 샷 커버리지</h3>
+              <h3 className="text-xs uppercase text-neutral-500 mb-2">{t("job.coverage_title")}</h3>
               <table className="text-sm w-full max-w-md">
                 <thead className="text-neutral-500 text-xs">
-                  <tr><th className="text-left py-1">버킷</th><th className="text-right">전체</th><th className="text-right">유지</th></tr>
+                  <tr><th className="text-left py-1">{t("job.col_bucket")}</th><th className="text-right">{t("job.col_total")}</th><th className="text-right">{t("job.col_kept")}</th></tr>
                 </thead>
                 <tbody>
                   {verdict.coverage_table?.map((r: any) => (
@@ -153,6 +155,7 @@ export default function JobDetail({ params }: { params: Promise<{ jobID: string 
 }
 
 function Stat({ label, v, accent, href }: { label: string; v: any; accent?: boolean; href?: string }) {
+  const { t } = useLocale();
   const body = (
     <>
       <div className="text-xs text-neutral-500">{label}</div>
@@ -162,7 +165,7 @@ function Stat({ label, v, accent, href }: { label: string; v: any; accent?: bool
   const cls = "block bg-panel2 rounded-md px-3 py-2";
   return href ? (
     <Link href={href} className={`${cls} hover:bg-[#2c2c31] hover:ring-1 hover:ring-blue-500/40 transition-colors`}
-      title="이 목록을 갤러리에서 보기">
+      title={t("job.stat_link_title")}>
       {body}
     </Link>
   ) : (

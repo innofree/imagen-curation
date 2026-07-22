@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ImageOff, Loader2 } from "lucide-react";
+import { useLocale } from "@/components/LocaleProvider";
 
 // <img> wrapper that degrades gracefully instead of showing the browser's
 // broken-image glyph. If the primary src fails (e.g. a reject whose full-res
@@ -18,6 +19,7 @@ export default function ImageWithFallback({
   onClick?: () => void;
   note?: string;           // extra hint shown under the placeholder label
 }) {
+  const { t } = useLocale();
   // `phase`: which source we're on. Reset synchronously during render when the
   // source changes (the React "adjust state on prop change" pattern) so a reused
   // instance never paints one stale frame with the old phase before an effect
@@ -55,7 +57,7 @@ export default function ImageWithFallback({
       ) : (
         <div className={`flex flex-col items-center justify-center gap-1 text-center text-neutral-500 bg-panel2 ${imgClassName || ""}`}>
           <ImageOff size={22} />
-          <span className="text-[11px] leading-tight px-2">이미지 없음 / 이동됨</span>
+          <span className="text-[11px] leading-tight px-2">{t("imgf.missing")}</span>
           {note && <span className="text-[10px] text-neutral-600 px-2 break-all">{note}</span>}
         </div>
       )}

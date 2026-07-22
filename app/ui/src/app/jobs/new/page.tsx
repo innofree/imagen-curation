@@ -2,20 +2,22 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import TopBar from "@/components/TopBar";
+import { useLocale } from "@/components/LocaleProvider";
 
 // Recommended VL evaluators. "" = use the server-configured default model.
 // "__custom__" reveals a free-text field for any HF repo id or local path.
-const MODEL_OPTIONS: { value: string; label: string }[] = [
-  { value: "", label: "기본값 (서버 설정)" },
-  { value: "huihui-ai/Huihui-Qwen3-VL-8B-Instruct-abliterated", label: "Qwen3-VL 8B abliterated (비검열, 기본)" },
-  { value: "Qwen/Qwen3-VL-8B-Instruct", label: "Qwen3-VL 8B Instruct (공식)" },
-  { value: "Qwen/Qwen3-VL-4B-Instruct", label: "Qwen3-VL 4B Instruct (빠름)" },
-  { value: "Qwen/Qwen3-VL-2B-Instruct", label: "Qwen3-VL 2B Instruct (최속·경량)" },
-  { value: "__custom__", label: "직접 입력 (HF repo id / 로컬 경로)" },
+const MODEL_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: "", labelKey: "new.model_default" },
+  { value: "huihui-ai/Huihui-Qwen3-VL-8B-Instruct-abliterated", labelKey: "new.model_qwen3vl_8b_abliterated" },
+  { value: "Qwen/Qwen3-VL-8B-Instruct", labelKey: "new.model_qwen3vl_8b" },
+  { value: "Qwen/Qwen3-VL-4B-Instruct", labelKey: "new.model_qwen3vl_4b" },
+  { value: "Qwen/Qwen3-VL-2B-Instruct", labelKey: "new.model_qwen3vl_2b" },
+  { value: "__custom__", labelKey: "new.model_custom" },
 ];
 
 export default function NewJob() {
   const router = useRouter();
+  const { t } = useLocale();
   const [datasets, setDatasets] = useState<any[]>([]);
   const [gpus, setGpus] = useState<any[]>([]);
   const [defaultModel, setDefaultModel] = useState("");
@@ -82,10 +84,10 @@ export default function NewJob() {
 
   return (
     <>
-      <TopBar title="New Curation Job" />
+      <TopBar title={t("new.title")} />
       <div className="p-5 max-w-2xl">
         <div className="card p-5 divide-y divide-edge">
-          <Row label="데이터셋">
+          <Row label={t("new.dataset")}>
             <select className="input" value={form.source_folder} onChange={(e) => set("source_folder", e.target.value)}>
               {datasets.map((d) => {
                 const multiRoot = new Set(datasets.map((x) => x.root)).size > 1;
@@ -97,72 +99,72 @@ export default function NewJob() {
               })}
             </select>
           </Row>
-          <Row label="평가 모델 (VL)">
+          <Row label={t("new.eval_model")}>
             <select className="input" value={form.model} onChange={(e) => set("model", e.target.value)}>
               {MODEL_OPTIONS.map((m) => (
                 <option key={m.value} value={m.value}>
-                  {m.value === "" && defaultModel ? `기본값 (${defaultModel})` : m.label}
+                  {m.value === "" && defaultModel ? t("new.model_default_named", { model: defaultModel }) : t(m.labelKey)}
                 </option>
               ))}
             </select>
             {form.model === "__custom__" && (
-              <input className="input mt-2" placeholder="예: Qwen/Qwen3-VL-8B-Instruct 또는 /경로/모델"
+              <input className="input mt-2" placeholder={t("new.model_custom_placeholder")}
                 value={form.modelCustom} onChange={(e) => set("modelCustom", e.target.value)} />
             )}
           </Row>
-          <Row label="모드">
+          <Row label={t("new.mode")}>
             <select className="input" value={form.mode} onChange={(e) => set("mode", e.target.value)}>
-              <option value="auto">자동 (분석→적용)</option>
-              <option value="review">리뷰 (분석→수동 확인→적용)</option>
+              <option value="auto">{t("new.mode_auto")}</option>
+              <option value="review">{t("new.mode_review")}</option>
             </select>
           </Row>
-          <Row label="목표 유지 수 (선택)">
-            <input className="input" type="number" placeholder="비우면 자동 균형" value={form.target}
+          <Row label={t("new.target")}>
+            <input className="input" type="number" placeholder={t("new.target_placeholder")} value={form.target}
               onChange={(e) => set("target", e.target.value)} />
           </Row>
-          <Row label="버킷(뷰×샷)당 최대 장수">
-            <input className="input" type="number" placeholder="비우면 자동 (예: 5)" value={form.per_bucket_cap}
+          <Row label={t("new.per_bucket_cap")}>
+            <input className="input" type="number" placeholder={t("new.per_bucket_cap_placeholder")} value={form.per_bucket_cap}
               onChange={(e) => set("per_bucket_cap", e.target.value)} />
           </Row>
-          <Row label="GPU">
+          <Row label={t("new.gpu")}>
             <select className="input" value={form.gpu_ids} onChange={(e) => set("gpu_ids", e.target.value)}>
               {gpus.length === 0 && <option value="0">GPU 0</option>}
               {gpus.map((g) => (
                 <option key={g.index} value={String(g.index)}>
-                  #{g.index} {g.name} · 여유 {(g.memFree / 1024).toFixed(0)}GB
-                  {g.idleOccupied ? " (유휴 점유→확보)" : g.util > 8 ? " (사용중)" : ""}
+                  #{g.index} {g.name} · {t("new.gpu_free", { gb: (g.memFree / 1024).toFixed(0) })}
+                  {g.idleOccupied ? ` ${t("new.gpu_idle_occupied")}` : g.util > 8 ? ` ${t("new.gpu_in_use")}` : ""}
                 </option>
               ))}
             </select>
           </Row>
-          <Row label="비검열 캡션 재생성">
+          <Row label={t("new.recaption")}>
             <input type="checkbox" checked={form.recaption} onChange={(e) => set("recaption", e.target.checked)} />
           </Row>
-          <Row label="유휴 GPU 자동 확보 (idle ComfyUI 정지)">
+          <Row label={t("new.auto_free_gpu")}>
             <input type="checkbox" checked={form.auto_free_gpu} onChange={(e) => set("auto_free_gpu", e.target.checked)} />
           </Row>
-          <Row label="VRAM 모드">
+          <Row label={t("new.vram_mode")}>
             <select className="input" value={form.vram_mode} onChange={(e) => set("vram_mode", e.target.value)}>
-              <option value="auto">자동 (여유 있으면 bf16, 없으면 fp8)</option>
-              <option value="bf16">bf16 강제 (빠름·VRAM 여유 필요)</option>
-              <option value="fp8">fp8 강제 (공유 GPU 공존)</option>
+              <option value="auto">{t("new.vram_auto")}</option>
+              <option value="bf16">{t("new.vram_bf16")}</option>
+              <option value="fp8">{t("new.vram_fp8")}</option>
             </select>
           </Row>
-          <Row label="리젝트 하드 삭제 (기본: 격리 이동)">
+          <Row label={t("new.do_delete")}>
             <input type="checkbox" checked={form.do_delete} onChange={(e) => set("do_delete", e.target.checked)} />
           </Row>
-          <Row label="Dry-run (파일 변경 없음)">
+          <Row label={t("new.dry_run")}>
             <input type="checkbox" checked={form.dry_run} onChange={(e) => set("dry_run", e.target.checked)} />
           </Row>
         </div>
         <div className="mt-4 flex gap-2">
           <button className="btn btn-primary" disabled={busy || !form.source_folder} onClick={submit}>
-            {busy ? "생성 중..." : "작업 시작"}
+            {busy ? t("new.submitting") : t("new.submit")}
           </button>
         </div>
         <p className="text-xs text-neutral-500 mt-3">
-          자동 모드는 분석 후 즉시 적용합니다. 리뷰 모드는 분석 후 갤러리에서 keep/reject를 수정한 뒤 적용합니다.
-          리젝트는 <code>{"<dataset>_rejected/"}</code>로 이동(되돌리기 가능)합니다.
+          {t("new.help_intro")}
+          {t("new.help_reject_prefix")}<code>{"<dataset>_rejected/"}</code>{t("new.help_reject_suffix")}
         </p>
       </div>
     </>

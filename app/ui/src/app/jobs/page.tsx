@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import StatusBadge from "@/components/StatusBadge";
+import { useLocale } from "@/components/LocaleProvider";
 
 export default function JobsList() {
+  const { t } = useLocale();
   const [jobs, setJobs] = useState<any[]>([]);
   useEffect(() => {
     const load = () => fetch("/api/jobs").then((r) => r.json()).then((d) => setJobs(d.jobs || []));
@@ -23,10 +25,10 @@ export default function JobsList() {
           <table className="w-full text-sm">
             <thead className="text-neutral-500 text-xs">
               <tr className="border-b border-edge">
-                <th className="text-left px-4 py-2 font-medium">이름</th>
-                <th className="text-left px-4 py-2 font-medium">상태</th>
-                <th className="text-left px-4 py-2 font-medium">진행</th>
-                <th className="text-left px-4 py-2 font-medium">정보</th>
+                <th className="text-left px-4 py-2 font-medium">{t("jobs.colName")}</th>
+                <th className="text-left px-4 py-2 font-medium">{t("jobs.colStatus")}</th>
+                <th className="text-left px-4 py-2 font-medium">{t("jobs.colProgress")}</th>
+                <th className="text-left px-4 py-2 font-medium">{t("jobs.colInfo")}</th>
               </tr>
             </thead>
             <tbody>
@@ -43,7 +45,7 @@ export default function JobsList() {
                 </tr>
               ))}
               {jobs.length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-8 text-center text-neutral-500">작업 없음</td></tr>
+                <tr><td colSpan={4} className="px-4 py-8 text-center text-neutral-500">{t("jobs.empty")}</td></tr>
               )}
             </tbody>
           </table>
