@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
 import Sidebar from "@/components/Sidebar";
 import FontApplier from "@/components/FontApplier";
+import LocaleProvider from "@/components/LocaleProvider";
 
 // Google-hosted Korean+Latin web font, optimized & self-hosted by Next at
 // build time (no runtime CDN request). Suitable for web UI.
@@ -24,10 +25,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko" className={`dark ${notoKR.variable}`}>
       <body>
         <FontApplier />
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 min-w-0">{children}</main>
-        </div>
+        <LocaleProvider>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <main className="flex-1 min-w-0">{children}</main>
+          </div>
+        </LocaleProvider>
       </body>
     </html>
   );

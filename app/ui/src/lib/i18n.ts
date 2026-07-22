@@ -1,12 +1,13 @@
-// Lightweight i18n + personalization foundation.
+// Lightweight i18n foundation.
 //
-// Design intent (future-facing): locale is a per-user preference persisted in
-// the Settings table (key "locale"), mirrored to localStorage for instant
-// paint — the same pattern as the UI font. Today only the Help content is
-// fully localized; UI strings can be migrated incrementally by adding keyed
-// messages to `messages` below and reading them via `t(locale, key)`. When the
-// whole app is localized, wrap the layout in a LocaleProvider/context so every
-// component reacts to a change without a reload.
+// Locale is a per-user preference persisted in the Settings table (key
+// "locale") and mirrored to localStorage for instant paint — the same pattern
+// as the UI font. The message catalog lives in ./messages; components read
+// strings reactively via the LocaleProvider context (see
+// components/LocaleProvider). `t(locale, key, params)` is the low-level lookup;
+// most components use the bound `t` from `useLocale()`.
+
+import { messages } from "./messages";
 
 export type Locale = "ko" | "en";
 
@@ -36,12 +37,18 @@ export async function saveLocale(locale: Locale) {
   }
 }
 
-// Seed message catalog. Extend per feature; fall back to the key if missing.
-type Catalog = Record<string, { ko: string; en: string }>;
-const messages: Catalog = {
-  "nav.help": { ko: "도움말", en: "Help" },
-};
-
-export function t(locale: Locale, key: string): string {
-  return messages[key]?.[locale] ?? key;
+// Low-level lookup. Falls back to the key when missing. Fills `{name}`
+// placeholders from `params`.
+export function t(
+  locale: Locale,
+  key: string,
+  params?: Record<string, string | number>
+): string {
+  let s = messages[key]?.[locale] ?? key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      s = s.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+    }
+  }
+  return s;
 }

@@ -5,6 +5,7 @@ import TopBar from "@/components/TopBar";
 import StatusBadge from "@/components/StatusBadge";
 import GpuStatus from "@/components/GpuStatus";
 import { Folder, Cpu, Layers, Type, Trash2, FlaskConical } from "lucide-react";
+import { useLocale } from "@/components/LocaleProvider";
 
 const ACTIVE = ["running", "analyzing", "applying", "queued", "apply_queued"];
 
@@ -26,6 +27,7 @@ function Chip({ icon: Icon, children, title }: any) {
 }
 
 export default function Dashboard() {
+  const { t } = useLocale();
   const [jobs, setJobs] = useState<any[]>([]);
   const [gpus, setGpus] = useState<Record<number, any>>({});
 
@@ -52,13 +54,13 @@ export default function Dashboard() {
       </TopBar>
       <div className="p-5 space-y-6">
         <section>
-          <h2 className="text-xs uppercase text-neutral-500 mb-2">GPU 상태</h2>
+          <h2 className="text-xs uppercase text-neutral-500 mb-2">{t("dash.gpu_status")}</h2>
           <GpuStatus />
         </section>
 
         <section>
-          <h2 className="text-xs uppercase text-neutral-500 mb-2">진행 중</h2>
-          {active.length === 0 && <div className="text-sm text-neutral-500">활성 작업 없음</div>}
+          <h2 className="text-xs uppercase text-neutral-500 mb-2">{t("dash.in_progress")}</h2>
+          {active.length === 0 && <div className="text-sm text-neutral-500">{t("dash.no_active")}</div>}
           <div className="grid gap-3 md:grid-cols-2">
             {active.map((j) => {
               const p = parseParams(j.params);
@@ -73,22 +75,22 @@ export default function Dashboard() {
                   </div>
                   {/* 조건 */}
                   <div className="flex flex-wrap gap-1 mt-2">
-                    <Chip icon={Folder} title="소스 데이터셋">{j.source_folder.split("/").pop()}</Chip>
-                    <Chip icon={FlaskConical} title="모드">{j.mode}</Chip>
-                    {cap ? <Chip icon={Layers} title="버킷당 최대 장수">버킷당 {cap}</Chip> : null}
-                    {j.target ? <Chip icon={Layers} title="목표 유지 수">목표 {j.target}</Chip> : null}
-                    {j.recaption ? <Chip icon={Type} title="캡션 재생성">recaption</Chip> : null}
-                    {j.do_delete ? <Chip icon={Trash2} title="리젝트 하드 삭제">delete</Chip> : null}
-                    {j.dry_run ? <Chip title="파일 변경 없음">dry-run</Chip> : null}
+                    <Chip icon={Folder} title={t("dash.src_dataset")}>{j.source_folder.split("/").pop()}</Chip>
+                    <Chip icon={FlaskConical} title={t("dash.mode")}>{j.mode}</Chip>
+                    {cap ? <Chip icon={Layers} title={t("dash.per_bucket_cap")}>{t("dash.per_bucket", { cap })}</Chip> : null}
+                    {j.target ? <Chip icon={Layers} title={t("dash.target_keep")}>{t("dash.target", { n: j.target })}</Chip> : null}
+                    {j.recaption ? <Chip icon={Type} title={t("dash.recaption_title")}>recaption</Chip> : null}
+                    {j.do_delete ? <Chip icon={Trash2} title={t("dash.hard_delete")}>delete</Chip> : null}
+                    {j.dry_run ? <Chip title={t("dash.no_file_change")}>dry-run</Chip> : null}
                   </div>
                   {/* 리소스 */}
                   <div className="flex flex-wrap gap-1 mt-1">
-                    <Chip icon={Cpu} title="사용 GPU">
+                    <Chip icon={Cpu} title={t("dash.used_gpu")}>
                       <span className="tnum">GPU #{gi}
                       {g ? ` · ${g.util}% · ${(g.memUsed / 1024).toFixed(1)}/${(g.memTotal / 1024).toFixed(0)}GB` : ""}</span>
                     </Chip>
-                    <Chip title="VRAM 모드">VRAM {vramMode(p)}</Chip>
-                    {p.auto_free_gpu !== false ? <Chip title="유휴 GPU 자동 확보">idle-reclaim</Chip> : null}
+                    <Chip title={t("dash.vram_mode")}>VRAM {vramMode(p)}</Chip>
+                    {p.auto_free_gpu !== false ? <Chip title={t("dash.idle_reclaim")}>idle-reclaim</Chip> : null}
                   </div>
                   <div className="text-xs text-neutral-500 mt-2">{j.info}</div>
                   {j.total_steps > 0 && (
@@ -104,7 +106,7 @@ export default function Dashboard() {
         </section>
 
         <section>
-          <h2 className="text-xs uppercase text-neutral-500 mb-2">최근 작업</h2>
+          <h2 className="text-xs uppercase text-neutral-500 mb-2">{t("dash.recent_jobs")}</h2>
           <div className="card divide-y divide-edge">
             {jobs.slice(0, 10).map((j) => (
               <Link key={j.id} href={`/jobs/${j.id}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-panel2 text-sm">
@@ -112,7 +114,7 @@ export default function Dashboard() {
                 <StatusBadge status={j.status} />
               </Link>
             ))}
-            {jobs.length === 0 && <div className="px-4 py-6 text-sm text-neutral-500">아직 작업이 없습니다.</div>}
+            {jobs.length === 0 && <div className="px-4 py-6 text-sm text-neutral-500">{t("dash.no_jobs")}</div>}
           </div>
         </section>
       </div>
